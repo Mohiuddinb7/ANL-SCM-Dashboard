@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agrigate Network Ltd. | Supply Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#eef1ee; --surface:#ffffff; --ink:#17231c; --muted:#66756c; --line:#d9e0db;
+  --green:#1f6b4a; --gold:#d49a1f; --blue:#3b7ea1; --red:#b5432f; --soft:#f5f7f5;
+  --font:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f1713; --surface:#17211b; --ink:#e7eee9; --muted:#93a399; --line:#2a3830; --green:#4fb98a; --gold:#e8b445; --blue:#6fb0d3; --red:#e57a66; --soft:#1c2822;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
+.wrap{max-width:1400px;margin:0 auto;padding:20px}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:6px}
+h1{margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:2px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:150px}
+select,input,button{font:inherit;color:var(--ink)}
+select,input[type=date],input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600}
+button.primary{background:var(--green);border-color:var(--green);color:#fff}
+@media (prefers-color-scheme:dark){button.primary{color:#07140d}}
+button:hover{filter:brightness(.96)}
+#refresh svg{vertical-align:-3px;margin-right:6px}
+#refresh.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#refresh.spin svg{animation:none}}
+.status{font-size:12.5px;color:var(--muted);margin:8px 0 14px;min-height:18px}
+.status.err{color:var(--red)}
+.status b{color:var(--ink)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:14px;margin-bottom:14px;align-items:end}
+.filters label.f{min-width:0}
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;margin-bottom:14px;overflow:hidden}
+.kpi{padding:16px 18px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:0}
+.kpi .l{color:var(--muted);font-size:12.5px}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.kpi .s{color:var(--muted);font-size:12px;margin-top:2px}
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.bar{height:8px;border-radius:4px;background:var(--soft);margin-top:10px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--gold)}
+.bad{color:var(--red)} .good{color:var(--green)}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.tabs button{border:0;border-radius:0;background:transparent;padding:8px 16px}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.card{padding:14px 16px}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:600}
+.chart{position:relative;height:270px}
+.full{grid-column:1/-1}
+.scroll{overflow:auto;max-height:560px;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;white-space:nowrap}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:12.5px;cursor:pointer;user-select:none;z-index:1}
+th.n,td.n{text-align:right}
+tbody tr:hover{background:var(--soft)}
+tfoot td{position:sticky;bottom:0;background:var(--soft);font-weight:700;border-top:2px solid var(--line)}
+.tbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:10px;flex-wrap:wrap}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+.hidden{display:none!important}
+@media (max-width:900px){
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi{border-bottom:1px solid var(--line)}
+  .kpi:first-child{grid-column:1/-1}
+  .grid{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Agrigate Network Ltd.</h1>
+      <div class="sub">Truck-wise supply dashboard</div>
+    </div>
+    <div class="controls">
+      <label class="f">Sheet (month)
+        <select id="sheet"></select>
+      </label>
+      <button id="addTab" title="Add a sheet tab that is missing from the list">Add sheet</button>
+      <button id="refresh" class="primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Refresh
+      </button>
+    </div>
+  </header>
+  <div id="status" class="status" role="status"></div>
+
+  <section class="panel filters" aria-label="Filters">
+    <label class="f">Product<select id="fItem"></select></label>
+    <label class="f">Customer<select id="fCust"></select></label>
+    <label class="f">PO No<select id="fPo"></select></label>
+    <label class="f">Month<select id="fMonth"></select></label>
+    <label class="f">From date<input type="date" id="fFrom"></label>
+    <label class="f">To date<input type="date" id="fTo"></label>
+    <label class="f">Search<input type="search" id="fQ" placeholder="Truck, PO, customer"></label>
+    <button id="reset">Reset filters</button>
+  </section>
+
+  <section class="panel kpis" id="kpis" aria-label="Summary"></section>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+    <div class="tabs" role="group" aria-label="View">
+      <button id="vDash" aria-pressed="true">Dashboard</button>
+      <button id="vTable" aria-pressed="false">Table view</button>
+    </div>
+    <div class="sub" id="count"></div>
+  </div>
+
+  <section id="dash" class="grid">
+    <div class="panel card"><h2>Sales value by product</h2><div class="chart"><canvas id="c1"></canvas></div></div>
+    <div class="panel card"><h2>Supply vs received weight by product (MT)</h2><div class="chart"><canvas id="c2"></canvas></div></div>
+    <div class="panel card full"><h2>Daily supply vs received (MT)</h2><div class="chart"><canvas id="c3"></canvas></div></div>
+    <div class="panel card full"><h2>Top customers by sales value</h2><div class="chart"><canvas id="c4"></canvas></div></div>
+    <div class="panel full">
+      <div class="tbar"><h2 style="margin:0;font-size:15px">PO-wise summary</h2><span class="sub">Grouped by PO, customer and product</span></div>
+      <div class="scroll"><table id="poTable"></table></div>
+    </div>
+  </section>
+
+  <section id="tview" class="panel hidden">
+    <div class="tbar">
+      <span class="sub">Click a column heading to sort</span>
+      <button id="csv">Download CSV</button>
+    </div>
+    <div class="scroll"><table id="dataTable"></table></div>
+  </section>
+</div>
+
+<script>
+/* ---------- Settings ---------- */
+const SHEET_ID = '1en28uB-YyAWkb8gz2qe3i_w0xMJrk60lCZkOgWiP3_o';
+const DEFAULT_TABS = [
+  "Supply Details Oct'26","Supply Details Sep'26","Supply Details Aug'26",
+  "Supply Details July'26","Supply Details June'26","Supply Details May'26","Supply Details Apr'26"
+];
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const fmt = (n,d=0) => Number(n).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const money = n => n>=1e7 ? '৳ '+fmt(n/1e7,2)+' Cr' : n>=1e5 ? '৳ '+fmt(n/1e5,2)+' Lakh' : '৳ '+fmt(n);
+const mt = kg => fmt(kg/1000,2)+' MT';
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const MONN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const num = s => { const v = parseFloat(String(s??'').replace(/,/g,'')); return isNaN(v)?0:v; };
+const pad = n => String(n).padStart(2,'0');
+
+function parseDate(s){
+  s = String(s||'').trim(); if(!s) return null;
+  let m = s.match(/^(\d{1,2})[-\/ ]([A-Za-z]{3,})[-\/ ,]*(\d{2,4})$/);
+  if(m){ const mo = MON[m[2].slice(0,3).toLowerCase()]; if(mo===undefined) return null;
+    const y = +m[3]<100 ? 2000+ +m[3] : +m[3]; return {y,m:mo,d:+m[1]}; }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m){ const y = +m[3]<100 ? 2000+ +m[3] : +m[3]; return {y,m:+m[2]-1,d:+m[1]}; }
+  return null;
+}
+function parseCSV(t){
+  const rows=[]; let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(q){ if(ch=='"'){ if(t[i+1]=='"'){c+='"';i++} else q=false } else c+=ch }
+    else if(ch=='"') q=true;
+    else if(ch==','){ r.push(c); c=''; }
+    else if(ch=='\n'||ch=='\r'){ if(ch=='\r'&&t[i+1]=='\n')i++; r.push(c); c=''; rows.push(r); r=[]; }
+    else c+=ch;
+  }
+  if(c!==''||r.length){ r.push(c); rows.push(r); }
+  return rows;
+}
+
+/* ---------- Data loading ---------- */
+let tabs = [...DEFAULT_TABS, ...store.get('extraTabs',[]).filter(t=>!DEFAULT_TABS.includes(t))];
+let DATA = [], VIEW = [], sortKey='iso', sortDir=-1;
+
+async function fetchCsv(name, range){
+  const u = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}${range?'&range=A3:R':''}&_=${Date.now()}`;
+  const res = await fetch(u,{cache:'no-store'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const txt = await res.text();
+  if(/^\s*<(!doctype|html)/i.test(txt)) throw new Error('Sheet is not public');
+  return parseCSV(txt);
+}
+function rowsToRecords(matrix, tab){
+  let h = -1;
+  for(let i=0;i<Math.min(matrix.length,15);i++){
+    const n = matrix[i].map(norm);
+    if(n.includes('item') && n.includes('customername')){ h=i; break; }
+  }
+  if(h<0) throw new Error('Header row not found in "'+tab+'"');
+  const hd = matrix[h].map(norm);
+  const col = fn => hd.findIndex(fn);
+  const ix = {
+    item:col(x=>x==='item'), cust:col(x=>x==='customername'), po:col(x=>x==='wopono'),
+    date:col(x=>x==='deliverydate'), truck:col(x=>x==='truckno'),
+    sw:col(x=>x.startsWith('sweight')), rw:col(x=>x.startsWith('rweight')), sales:col(x=>x==='salesvalue')
+  };
+  const out=[];
+  for(let i=h+1;i<matrix.length;i++){
+    const r = matrix[i];
+    const item = (r[ix.item]||'').trim();
+    if(!item || /total/i.test(item)) continue;
+    const sw=num(r[ix.sw]), rw=num(r[ix.rw]), sales=num(r[ix.sales]);
+    if(!sw && !rw && !sales) continue;
+    const dt = parseDate(r[ix.date]);
+    out.push({
+      tab, item, cust:(r[ix.cust]||'').trim()||'(blank)', po:(r[ix.po]||'').trim()||'(blank)',
+      truck:(r[ix.truck]||'').trim(), sw, rw, sales,
+      iso: dt?`${dt.y}-${pad(dt.m+1)}-${pad(dt.d)}`:'',
+      month: dt?`${dt.y}-${pad(dt.m+1)}`:''
+    });
+  }
+  return out;
+}
+async function fetchTab(name){
+  let m;
+  try{ m = await fetchCsv(name,true); rowsToRecords(m,name); }
+  catch(e){ m = await fetchCsv(name,false); }
+  return rowsToRecords(m,name);
+}
+
+async function load(){
+  const sel = $('sheet').value;
+  const names = sel==='__all' ? tabs : [sel];
+  $('refresh').classList.add('spin');
+  setStatus('Loading data from Google Sheets...');
+  const res = await Promise.allSettled(names.map(fetchTab));
+  const fails=[]; DATA=[];
+  res.forEach((r,i)=> r.status==='fulfilled' ? DATA.push(...r.value) : fails.push(`${names[i]} (${r.reason.message})`));
+  $('refresh').classList.remove('spin');
+  buildFilters();
+  render();
+  const time = new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  if(fails.length && !DATA.length){
+    setStatus('Could not load data. In Google Sheets choose Share, then "Anyone with the link: Viewer", and open this file with internet on. Details: '+fails[0],true);
+  } else if(fails.length){
+    setStatus(`Loaded ${DATA.length} rows. Skipped: ${fails.join('; ')}`,true);
+  } else {
+    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${names.length}</b> sheet${names.length>1?'s':''}. Updated ${time}.`);
+  }
+}
+function setStatus(h,err){ const s=$('status'); s.innerHTML=h; s.classList.toggle('err',!!err); }
+
+/* ---------- Filters ---------- */
+const FS = {item:'fItem', cust:'fCust', po:'fPo', month:'fMonth'};
+const ALL = {item:'All products', cust:'All customers', po:'All PO numbers', month:'All months'};
+const monthLabel = k => { const [y,m]=k.split('-'); return MONN[+m-1]+' '+y; };
+
+function buildFilters(){
+  for(const k in FS){
+    const el=$(FS[k]), cur=el.value;
+    const vals=[...new Set(DATA.map(d=>d[k]).filter(Boolean))].sort();
+    el.innerHTML = `<option value="">${ALL[k]}</option>` +
+      vals.map(v=>`<option value="${esc(v)}">${esc(k==='month'?monthLabel(v):v)}</option>`).join('');
+    el.value = vals.includes(cur)?cur:'';
+  }
+}
+function applyFilters(){
+  const f = {item:$('fItem').value,cust:$('fCust').value,po:$('fPo').value,month:$('fMonth').value};
+  const from=$('fFrom').value, to=$('fTo').value, q=$('fQ').value.trim().toLowerCase();
+  return DATA.filter(d=>
+    (!f.item||d.item===f.item)&&(!f.cust||d.cust===f.cust)&&(!f.po||d.po===f.po)&&(!f.month||d.month===f.month)&&
+    (!from||(d.iso&&d.iso>=from))&&(!to||(d.iso&&d.iso<=to))&&
+    (!q||(d.truck+' '+d.po+' '+d.cust+' '+d.item).toLowerCase().includes(q))
+  );
+}
+
+/* ---------- Rendering ---------- */
+let charts={};
+function render(){
+  VIEW = applyFilters();
+  renderKpis(); renderCharts(); renderPo(); renderTable();
+  $('count').textContent = `${fmt(VIEW.length)} of ${fmt(DATA.length)} deliveries shown`;
+}
+function sum(a,k){ return a.reduce((s,x)=>s+x[k],0); }
+function renderKpis(){
+  const sw=sum(VIEW,'sw'), rw=sum(VIEW,'rw'), sales=sum(VIEW,'sales'), diff=sw-rw;
+  const pct = sw? Math.min(100,rw/sw*100):0;
+  const trucks = VIEW.length;
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="flow">
+      <div><div class="l">Supply weight</div><div class="v">${mt(sw)}</div><div class="s">${fmt(sw,0)} kg</div></div>
+      <div><div class="l">Received weight</div><div class="v">${mt(rw)}</div><div class="s">${fmt(rw,0)} kg</div></div>
+    </div><div class="bar" title="Received as % of supplied"><i style="width:${pct}%"></i></div>
+    <div class="s" style="margin-top:6px">${sw?fmt(rw/sw*100,2):'0'}% of supplied weight received</div></div>
+    <div class="kpi"><div class="l">Difference (supply − received)</div>
+      <div class="v ${diff>0?'bad':'good'}">${diff<0?'+':''}${fmt(Math.abs(diff),0)} kg</div>
+      <div class="s">${diff>0?'Short at delivery':diff<0?'Received more than supplied':'No difference'}</div></div>
+    <div class="kpi"><div class="l">Sales value</div><div class="v">${money(sales)}</div><div class="s">৳ ${fmt(sales)}</div></div>
+    <div class="kpi"><div class="l">Truck deliveries</div><div class="v">${fmt(trucks)}</div><div class="s">${new Set(VIEW.map(d=>d.po)).size} PO numbers</div></div>`;
+}
+const PAL = ['#1f6b4a','#d49a1f','#3b7ea1','#b5432f','#7a8f3a','#6b5b95','#8a8f98','#c06c9a'];
+function group(arr,keyFn){ const m=new Map(); arr.forEach(d=>{const k=keyFn(d); if(!m.has(k))m.set(k,[]); m.get(k).push(d);}); return m; }
+function mk(id,cfg){
+  if(charts[id]) charts[id].destroy();
+  if(typeof Chart==='undefined') return;
+  charts[id]=new Chart($(id),cfg);
+}
+function renderCharts(){
+  if(typeof Chart==='undefined') return;
+  const cs=getComputedStyle(document.documentElement);
+  Chart.defaults.color=cs.getPropertyValue('--muted').trim();
+  Chart.defaults.borderColor=cs.getPropertyValue('--line').trim();
+  Chart.defaults.font.family=cs.getPropertyValue('--font');
+  const green=cs.getPropertyValue('--green').trim(), gold=cs.getPropertyValue('--gold').trim();
+  const base={responsive:true,maintainAspectRatio:false};
+
+  const byItem=[...group(VIEW,d=>d.item)].map(([k,v])=>({k,sw:sum(v,'sw')/1000,rw:sum(v,'rw')/1000,sales:sum(v,'sales')})).sort((a,b)=>b.sales-a.sales);
+  mk('c1',{type:'doughnut',data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:PAL,borderWidth:0}]},
+    options:{...base,cutout:'62%',plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>` ${c.label}: ${money(c.raw)}`}}}}});
+  mk('c2',{type:'bar',data:{labels:byItem.map(x=>x.k),datasets:[
+      {label:'Supply (MT)',data:byItem.map(x=>+x.sw.toFixed(2)),backgroundColor:green},
+      {label:'Received (MT)',data:byItem.map(x=>+x.rw.toFixed(2)),backgroundColor:gold}]},
+    options:{...base,plugins:{legend:{position:'bottom'}}}});
+
+  const byDay=[...group(VIEW.filter(d=>d.iso),d=>d.iso)].sort((a,b)=>a[0]<b[0]?-1:1);
+  const lab=iso=>{const [y,m,d]=iso.split('-'); return +d+' '+MONN[+m-1]+(DATA.length&&$('sheet').value==='__all'?" '"+y.slice(2):'');};
+  mk('c3',{type:'bar',data:{labels:byDay.map(x=>lab(x[0])),datasets:[
+      {label:'Supply (MT)',data:byDay.map(x=>+(sum(x[1],'sw')/1000).toFixed(2)),backgroundColor:green},
+      {label:'Received (MT)',data:byDay.map(x=>+(sum(x[1],'rw')/1000).toFixed(2)),backgroundColor:gold}]},
+    options:{...base,plugins:{legend:{position:'bottom'}},scales:{x:{ticks:{maxRotation:60,autoSkip:true}}}}});
+
+  const byCust=[...group(VIEW,d=>d.cust)].map(([k,v])=>({k,s:sum(v,'sales')})).sort((a,b)=>b.s-a.s).slice(0,8);
+  mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:green}]},
+    options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+money(c.raw)}}},
+      scales:{x:{ticks:{callback:v=>v>=1e7?(v/1e7)+' Cr':v>=1e5?(v/1e5)+' L':v}}}}});
+}
+function tableHtml(cols,rows,foot){
+  if(!rows.length) return `<tbody><tr><td class="empty" colspan="${cols.length}">No deliveries match these filters. Try Reset filters.</td></tr></tbody>`;
+  return `<thead><tr>${cols.map(c=>`<th class="${c.n?'n':''}" data-k="${c.k}">${c.t}${sortKey===c.k?(sortDir>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td class="${c.n?'n':''}">${c.f?c.f(r):esc(r[c.k])}</td>`).join('')}</tr>`).join('')}</tbody>
+  ${foot?`<tfoot><tr>${foot}</tr></tfoot>`:''}`;
+}
+function renderPo(){
+  const rows=[...group(VIEW,d=>d.po+'||'+d.cust+'||'+d.item)].map(([k,v])=>({
+    po:v[0].po,cust:v[0].cust,item:v[0].item,n:v.length,sw:sum(v,'sw'),rw:sum(v,'rw'),sales:sum(v,'sales')
+  })).sort((a,b)=>b.sales-a.sales);
+  const cols=[{t:'PO No',k:'po'},{t:'Customer',k:'cust'},{t:'Product',k:'item'},{t:'Trucks',k:'n',n:1},
+    {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},{t:'Received (kg)',k:'rw',n:1,f:r=>fmt(r.rw,2)},
+    {t:'Difference (kg)',k:'d',n:1,f:r=>{const d=r.sw-r.rw;return `<span class="${d>0?'bad':''}">${fmt(d,2)}</span>`}},
+    {t:'Sales value (৳)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
+  const t=$('poTable'); t.innerHTML=tableHtml(cols,rows);
+  t.querySelectorAll('th').forEach(th=>th.style.cursor='default');
+}
+function renderTable(){
+  const cols=[{t:'Date',k:'iso',f:r=>r.iso?r.iso.split('-').reverse().join('-'):''},{t:'Product',k:'item'},{t:'Customer',k:'cust'},{t:'PO No',k:'po'},
+    {t:'Truck No',k:'truck'},
+    {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},{t:'Received (kg)',k:'rw',n:1,f:r=>fmt(r.rw,2)},
+    {t:'Difference (kg)',k:'diff',n:1,f:r=>{const d=r.sw-r.rw;return `<span class="${d>0?'bad':''}">${fmt(d,2)}</span>`}},
+    {t:'Sales value (৳)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
+  const val = r => sortKey==='diff' ? r.sw-r.rw : r[sortKey];
+  const rows=[...VIEW].sort((a,b)=>{const x=val(a),y=val(b); return (x<y?-1:x>y?1:0)*sortDir;});
+  const sw=sum(VIEW,'sw'),rw=sum(VIEW,'rw');
+  const foot=`<td colspan="5">Total (${fmt(VIEW.length)} deliveries)</td><td class="n">${fmt(sw,2)}</td><td class="n">${fmt(rw,2)}</td><td class="n">${fmt(sw-rw,2)}</td><td class="n">${fmt(sum(VIEW,'sales'),2)}</td>`;
+  const t=$('dataTable'); t.innerHTML=tableHtml(cols,rows,VIEW.length?foot:'');
+  t.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=1;} renderTable();
+  });
+}
+
+/* ---------- Events ---------- */
+function setView(v){
+  const dash=v==='dash';
+  $('dash').classList.toggle('hidden',!dash); $('tview').classList.toggle('hidden',dash);
+  $('vDash').setAttribute('aria-pressed',dash); $('vTable').setAttribute('aria-pressed',!dash);
+  store.set('view',v);
+  if(dash) Object.values(charts).forEach(c=>c.resize());
+}
+function buildSheetSelect(selected){
+  $('sheet').innerHTML = `<option value="__all">All months</option>` + tabs.map(t=>`<option value="${esc(t)}">${esc(t.replace('Supply Details ',''))}</option>`).join('');
+  $('sheet').value = [...$('sheet').options].some(o=>o.value===selected)?selected:tabs[0];
+}
+$('sheet').onchange=()=>{ store.set('sheet',$('sheet').value); load(); };
+$('refresh').onclick=load;
+$('vDash').onclick=()=>setView('dash');
+$('vTable').onclick=()=>setView('table');
+['fItem','fCust','fPo','fMonth','fFrom','fTo'].forEach(id=>$(id).onchange=render);
+$('fQ').oninput=render;
+$('reset').onclick=()=>{ ['fItem','fCust','fPo','fMonth','fFrom','fTo','fQ'].forEach(id=>$(id).value=''); render(); };
+$('addTab').onclick=()=>{
+  const n=(prompt('Type the exact sheet tab name, for example: Supply Details Nov\'26')||'').trim();
+  if(!n||tabs.includes(n)) return;
+  tabs.unshift(n); store.set('extraTabs',tabs.filter(t=>!DEFAULT_TABS.includes(t)));
+  buildSheetSelect(n); store.set('sheet',n); load();
+};
+$('csv').onclick=()=>{
+  const head=['Date','Product','Customer','PO No','Truck No','Supply (kg)','Received (kg)','Difference (kg)','Sales value'];
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const lines=[head.map(q).join(',')].concat(VIEW.map(r=>[r.iso,r.item,r.cust,r.po,r.truck,r.sw,r.rw,(r.sw-r.rw).toFixed(2),r.sales].map(q).join(',')));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}));
+  a.download='supply_data.csv'; a.click();
+};
+
+/* ---------- Start ---------- */
+buildSheetSelect(store.get('sheet',tabs[1]||tabs[0]));
+setView(store.get('view','dash'));
+load();
+</script>
+</body>
+</html>
