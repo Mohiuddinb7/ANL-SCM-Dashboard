@@ -129,6 +129,9 @@ button.link{border:0;background:none;height:auto;padding:0 6px;color:#4b7a22;fon
 .tbar h2{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#33552b}
 .card h2 .ctot{font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
 @media (prefers-color-scheme:dark){.card h2,.tbar h2{color:#cfe6a8}}
+.plist li.tot{border-top:1px solid var(--line);padding-top:9px;margin-top:2px}
+.plist li.tot span{color:var(--ink);font-weight:700}
+.plist li.tot b{font-weight:700}
 </style>
 </head>
 <body>
@@ -168,7 +171,7 @@ button.link{border:0;background:none;height:auto;padding:0 6px;color:#4b7a22;fon
 
   <section id="dash" class="grid">
     <div class="panel card"><h2>Product-wise sales value (%)<span class="ctot" id="c1tot"></span></h2><div class="chart"><canvas id="c1"></canvas></div></div>
-    <div class="panel card"><h2>Product-wise supply weight (MT)</h2><div class="chart"><canvas id="c2"></canvas></div></div>
+    <div class="panel card"><h2>Product-wise supply weight (MT)<span class="ctot" id="c2tot"></span></h2><div class="chart"><canvas id="c2"></canvas></div></div>
     <div class="panel card full"><h2>Daily supply weight (MT)</h2><div class="chart"><canvas id="c3"></canvas></div></div>
     <div class="panel card full"><h2>Top customers by sales value</h2><div class="chart"><canvas id="c4"></canvas></div></div>
     <div class="panel full">
@@ -199,7 +202,7 @@ const DEFAULT_TABS = [
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
 const fmt = (n,d=0) => Number(n).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
-const money = n => n>=1e7 ? '৳ '+fmt(n/1e7,2)+' Cr' : n>=1e5 ? '৳ '+fmt(n/1e5,2)+' Lakh' : '৳ '+fmt(n);
+const money = n => n>=1e7 ? 'BDT '+fmt(n/1e7,2)+' Cr' : n>=1e5 ? 'BDT '+fmt(n/1e5,2)+' Lakh' : 'BDT '+fmt(n);
 const mt = kg => fmt(kg/1000,2)+' MT';
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const store = {
@@ -370,20 +373,25 @@ function render(){
 }
 function sum(a,k){ return a.reduce((s,x)=>s+x[k],0); }
 function renderKpis(){
-  const sw=sum(VIEW,'sw'), sales=sum(VIEW,'sales');
+  const sw=sum(VIEW,'sw'), sales=sum(VIEW,'sales'), nPo=new Set(VIEW.map(d=>d.po)).size;
   const items=[...group(VIEW,d=>d.item)].map(([k,v])=>({k,sw:sum(v,'sw'),sales:sum(v,'sales')}));
   const order=[...items].sort((a,b)=>b.sales-a.sales).map(x=>x.k);
-  const list=(key,f)=>'<ul class="plist">'+[...items].sort((a,b)=>b[key]-a[key]).map(x=>`<li><span><i class="dot" style="background:${PAL[order.indexOf(x.k)%PAL.length]}"></i>${esc(x.k)}</span><b>${f(x[key])}</b></li>`).join('')+'</ul>';
+  const list=(key,f)=>'<ul class="plist">'+[...items].sort((a,b)=>b[key]-a[key]).map(x=>`<li><span><i class="dot" style="background:${colorFor(x.k,order.indexOf(x.k))}"></i>${esc(x.k)}</span><b>${f(x[key])}</b></li>`).join('')+`<li class="tot"><span>Total</span><b>${f(items.reduce((a,x)=>a+x[key],0))}</b></li></ul>`;
   $('kpis').innerHTML = `
     <div class="kpi"><div class="flow">
       <div><div class="l">Total Supply Weight</div><div class="v">${mt(sw)}</div><div class="s">${fmt(sw,0)} kg</div></div>
-      <div><div class="l">Total Sales Value</div><div class="v">${money(sales)}</div><div class="s">৳ ${fmt(sales)}</div></div>
+      <div><div class="l">Total Sales Value</div><div class="v">${money(sales)}</div><div class="s">BDT ${fmt(sales)}</div></div>
     </div></div>
     <div class="kpi"><div class="l">Product-wise Supply Weight</div>${list('sw',mt)}</div>
     <div class="kpi"><div class="l">Product-wise Sales Value</div>${list('sales',money)}</div>
-    <div class="kpi"><div class="l">Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">${new Set(VIEW.map(d=>d.po)).size} PO numbers</div></div>`;
+    <div class="kpi"><div class="l">Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">${VIEW.length===1?'Truck':'Trucks'} against ${nPo} PO number${nPo===1?'':'s'}</div></div>`;
 }
 const PAL = ['#33552b','#658b2e','#ccd065','#8aa63a','#a9b83a','#4d7a3a','#9aa58f','#b5432f'];
+/* Product colours taken from the product photos: soybean meal (pale olive-yellow), broken rice (golden), DORB pellets (tan-brown) */
+const PROD_COLORS=[[/soy/i,'#cfc678'],[/broken|rice/i,'#e0b254'],[/dorb|bran/i,'#a5733b']];
+const BAR_PAL=['#2e7d4f','#d49a1f','#3b7ea1','#b5432f','#7a8f3a','#6b5b95','#2f8f83','#c06c9a','#d9822b','#8a8f98'];
+const barColor=i=>i<BAR_PAL.length?BAR_PAL[i]:`hsl(${Math.round(i*137.5)%360} 48% 46%)`;
+const colorFor=(name,i)=>{const m=PROD_COLORS.find(([r])=>r.test(name));return m?m[1]:PAL[i%PAL.length];};
 function group(arr,keyFn){ const m=new Map(); arr.forEach(d=>{const k=keyFn(d); if(!m.has(k))m.set(k,[]); m.get(k).push(d);}); return m; }
 function mk(id,cfg){
   if(charts[id]) charts[id].destroy();
@@ -412,7 +420,7 @@ function renderCharts(){
         ctx.textBaseline='middle'; ctx.fillText(fmt(p,2)+'%',pos.x,pos.y);
       } else { ctx.fillStyle=ink; ctx.textBaseline='bottom'; ctx.fillText(fmt(v,2),el.x,el.y-4); }
     })); ctx.restore();}});
-  const colors=byItem.map((x,i)=>PAL[i%PAL.length]), totSales=byItem.reduce((a,x)=>a+x.sales,0)||1;
+  const colors=byItem.map((x,i)=>colorFor(x.k,i)), totSales=byItem.reduce((a,x)=>a+x.sales,0)||1;
   const pctCol=dark?'#9cc27a':'#7a9e5c', muted=cs.getPropertyValue('--muted').trim();
   const pieOut={id:'pieOut',afterDatasetsDraw(ch){
     const ctx=ch.ctx, ds=ch.data.datasets[0], tot=ds.data.reduce((a,b)=>a+b,0); if(!tot) return;
@@ -420,8 +428,8 @@ function renderCharts(){
     ctx.save();
     ch.getDatasetMeta(0).data.forEach((el,i)=>{
       const v=ds.data[i]; if(!v) return; const pc=v/tot*100;
-      if(pc>=7){ const pos=el.tooltipPosition(); ctx.font='700 13px '+ff; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=lum(colors[i])>0.55?'#1b2410':'#fff'; ctx.fillText(money(v),pos.x,pos.y); }
+      if(pc>=7){ const pos=el.tooltipPosition(); ctx.font='700 14px '+ff; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle=lum(colors[i])>0.55?'#1b2410':'#fff'; ctx.fillText(fmt(pc,1)+'%',pos.x,pos.y); }
       const a=(el.startAngle+el.endAngle)/2, R=el.outerRadius, c=Math.cos(a), sn=Math.sin(a), right=c>=0;
       const p1=[el.x+c*(R-3),el.y+sn*(R-3)], p2=[el.x+c*(R+16),el.y+sn*(R+16)];
       let y=p2[1]; if(right){y=Math.max(y,lastR+32);lastR=y;} else {y=Math.min(y,lastL-32);lastL=y;}
@@ -429,13 +437,14 @@ function renderCharts(){
       ctx.strokeStyle=muted; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.lineTo(p3[0],p3[1]); ctx.stroke();
       const tx=p3[0]+(right?6:-6); ctx.textAlign=right?'left':'right';
       ctx.textBaseline='bottom'; ctx.font='700 13px '+ff; ctx.fillStyle=ink; ctx.fillText(byItem[i].k,tx,y+1);
-      ctx.textBaseline='top'; ctx.font='500 12.5px '+ff; ctx.fillStyle=pctCol; ctx.fillText(fmt(pc,1)+'%',tx,y+3);
+      ctx.textBaseline='top'; ctx.font='500 12.5px '+ff; ctx.fillStyle=pctCol; ctx.fillText(money(v)+(pc<7?'  ·  '+fmt(pc,1)+'%':''),tx,y+3);
     });
     ctx.restore();}};
   mk('c1',{type:'pie',plugins:[pieOut],data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
     options:{...base,layout:{padding:window.innerWidth<560?{left:70,right:70,top:34,bottom:34}:{left:140,right:140,top:34,bottom:34}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ৳ ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: BDT ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
   $('c1tot').textContent='Total sales '+money(sum(VIEW,'sales'));
+  $('c2tot').textContent='Total supply '+mt(sum(VIEW,'sw'));
   mk('c2',{type:'bar',plugins:[labels('bar')],data:{labels:byItem.map(x=>x.k),datasets:[
       {label:'Supply (MT)',data:byItem.map(x=>+x.sw.toFixed(2)),backgroundColor:colors,maxBarThickness:90}]},
     options:{...base,layout:{padding:{top:22}},plugins:{legend:{display:false}}}});
@@ -444,11 +453,11 @@ function renderCharts(){
   const multiYear=new Set(DATA.map(x=>x.iso.slice(0,4)).filter(Boolean)).size>1;
   const lab=iso=>{const [y,m,d]=iso.split('-'); return +d+' '+MONN[+m-1]+(multiYear?" '"+y.slice(2):'');};
   mk('c3',{type:'bar',data:{labels:byDay.map(x=>lab(x[0])),datasets:[
-      {label:'Supply (MT)',data:byDay.map(x=>+(sum(x[1],'sw')/1000).toFixed(2)),backgroundColor:green}]},
+      {label:'Supply (MT)',data:byDay.map(x=>+(sum(x[1],'sw')/1000).toFixed(2)),backgroundColor:byDay.map((x,i)=>barColor(i))}]},
     options:{...base,plugins:{legend:{display:false}},scales:{x:{ticks:{maxRotation:60,autoSkip:true}}}}});
 
   const byCust=[...group(VIEW,d=>d.cust)].map(([k,v])=>({k,s:sum(v,'sales')})).sort((a,b)=>b.s-a.s).slice(0,8);
-  mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:green}]},
+  mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:byCust.map((x,i)=>barColor(i))}]},
     options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+money(c.raw)}}},
       scales:{x:{ticks:{callback:v=>v>=1e7?(v/1e7)+' Cr':v>=1e5?(v/1e5)+' L':v}}}}});
 }
@@ -464,7 +473,7 @@ function renderPo(){
   })).sort((a,b)=>b.sales-a.sales);
   const cols=[{t:'PO No',k:'po'},{t:'Customer',k:'cust'},{t:'Product',k:'item'},{t:'Trucks',k:'n',n:1},
     {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},
-    {t:'Sales value (৳)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
+    {t:'Sales value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
   const t=$('poTable'); t.innerHTML=tableHtml(cols,rows);
   t.querySelectorAll('th').forEach(th=>th.style.cursor='default');
 }
@@ -472,7 +481,7 @@ function renderTable(){
   const cols=[{t:'Date',k:'iso',f:r=>r.iso?r.iso.split('-').reverse().join('-'):''},{t:'Product',k:'item'},{t:'Customer',k:'cust'},{t:'PO No',k:'po'},
     {t:'Truck No',k:'truck'},
     {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},
-    {t:'Sales value (৳)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
+    {t:'Sales value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
   const val = r => sortKey==='diff' ? r.sw-r.rw : r[sortKey];
   const rows=[...VIEW].sort((a,b)=>{const x=val(a),y=val(b); return (x<y?-1:x>y?1:0)*sortDir;});
   const sw=sum(VIEW,'sw'),rw=sum(VIEW,'rw');
