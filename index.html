@@ -132,6 +132,24 @@ button.link{border:0;background:none;height:auto;padding:0 6px;color:#4b7a22;fon
 .plist li.tot{border-top:1px solid var(--line);padding-top:9px;margin-top:2px}
 .plist li.tot span{color:var(--ink);font-weight:700}
 .plist li.tot b{font-weight:700}
+/* KPI strip: no wrapping of big values, tidy product lists */
+.kpis{grid-template-columns:minmax(0,1.6fr) minmax(0,1.35fr) minmax(0,1.35fr) minmax(0,.8fr)}
+.kpi .v{font-size:clamp(20px,1.75vw,25px);font-variant-numeric:normal;white-space:nowrap}
+.kpi .s{text-wrap:balance}
+.flow{grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:16px}
+.plist li{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}
+.plist li span{min-width:0}
+.plist li b{white-space:nowrap;text-align:right}
+@media (max-width:1000px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi .l{display:flex;align-items:center;gap:8px}
+.kpi .l svg{width:17px;height:17px;flex:none;color:var(--green)}
+.live{display:inline-flex;align-items:center;gap:6px;margin-left:10px;font-weight:600;color:#4b7a22}
+.live i{width:8px;height:8px;border-radius:50%;background:#3fae5a;animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,174,90,.5)}70%{box-shadow:0 0 0 7px rgba(63,174,90,0)}100%{box-shadow:0 0 0 0 rgba(63,174,90,0)}}
+@media (prefers-reduced-motion:reduce){.live i{animation:none}}
+button.link{height:var(--h);padding:0 18px;border:1px solid var(--green);border-radius:10px;background:var(--surface);color:#33552b;text-decoration:none}
+button.link:hover{background:color-mix(in srgb,var(--green) 12%,var(--surface))}
+@media (prefers-color-scheme:dark){.live{color:var(--green)}button.link{color:#cfe6a8}}
 </style>
 </head>
 <body>
@@ -262,7 +280,7 @@ function rowsToRecords(matrix, tab){
   const ix = {
     item:col(x=>x==='item'), cust:col(x=>x==='customername'), po:col(x=>x==='wopono'),
     date:col(x=>x==='deliverydate'), truck:col(x=>x==='truckno'),
-    sw:col(x=>x.startsWith('sweight')), rw:col(x=>x.startsWith('rweight')), sales:col(x=>x==='salesvalue')
+    sw:col(x=>x.startsWith('sweight')), rw:col(x=>x.startsWith('rweight')), sales:col(x=>x==='salesvalue'), rate:col(x=>x==='woporate')
   };
   const out=[];
   for(let i=h+1;i<matrix.length;i++){
@@ -274,7 +292,7 @@ function rowsToRecords(matrix, tab){
     const dt = parseDate(r[ix.date]);
     out.push({
       tab, item, cust:(r[ix.cust]||'').trim()||'(blank)', po:(r[ix.po]||'').trim()||'(blank)',
-      truck:(r[ix.truck]||'').trim(), sw, rw, sales,
+      truck:(r[ix.truck]||'').trim(), sw, rw, sales, rate:num(r[ix.rate]),
       iso: dt?`${dt.y}-${pad(dt.m+1)}-${pad(dt.d)}`:'',
       month: dt?`${dt.y}-${pad(dt.m+1)}`:''
     });
@@ -335,7 +353,7 @@ async function load(){
   } else if(fails.length){
     setStatus(`Loaded ${DATA.length} rows. Skipped: ${fails.join('; ')}`,true);
   } else {
-    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${names.length}</b> sheet${names.length>1?'s':''}. Updated ${time}.`);
+    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${names.length}</b> sheet${names.length>1?'s':''}. Updated ${time} <span class="live"><i></i>Live</span>`);
   }
 }
 function setStatus(h,err){ const s=$('status'); s.innerHTML=h; s.classList.toggle('err',!!err); }
@@ -379,16 +397,25 @@ function renderKpis(){
   const list=(key,f)=>'<ul class="plist">'+[...items].sort((a,b)=>b[key]-a[key]).map(x=>`<li><span><i class="dot" style="background:${colorFor(x.k,order.indexOf(x.k))}"></i>${esc(x.k)}</span><b>${f(x[key])}</b></li>`).join('')+`<li class="tot"><span>Total</span><b>${f(items.reduce((a,x)=>a+x[key],0))}</b></li></ul>`;
   $('kpis').innerHTML = `
     <div class="kpi"><div class="flow">
-      <div><div class="l">Total Supply Weight</div><div class="v">${mt(sw)}</div><div class="s">${fmt(sw,0)} kg</div></div>
-      <div><div class="l">Total Sales Value</div><div class="v">${money(sales)}</div><div class="s">BDT ${fmt(sales)}</div></div>
+      <div><div class="l">${ic('scale')}Total Supply Weight</div><div class="v">${mt(sw)}</div><div class="s">${fmt(sw,0)} kg</div></div>
+      <div><div class="l">${ic('cash')}Total Sales Value</div><div class="v">${money(sales)}</div><div class="s">BDT ${fmt(sales)}</div></div>
     </div></div>
-    <div class="kpi"><div class="l">Product-wise Supply Weight</div>${list('sw',mt)}</div>
-    <div class="kpi"><div class="l">Product-wise Sales Value</div>${list('sales',money)}</div>
-    <div class="kpi"><div class="l">Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">${VIEW.length===1?'Truck':'Trucks'} against ${nPo} PO number${nPo===1?'':'s'}</div></div>`;
+    <div class="kpi"><div class="l">${ic('bars')}Product-wise Supply Weight</div>${list('sw',mt)}</div>
+    <div class="kpi"><div class="l">${ic('pie')}Product-wise Sales Value</div>${list('sales',money)}</div>
+    <div class="kpi"><div class="l">${ic('truck')}Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">${VIEW.length===1?'Truck':'Trucks'} Against ${nPo} PO Number${nPo===1?'':'s'}</div></div>`;
 }
 const PAL = ['#33552b','#658b2e','#ccd065','#8aa63a','#a9b83a','#4d7a3a','#9aa58f','#b5432f'];
 /* Product colours taken from the product photos: soybean meal (pale olive-yellow), broken rice (golden), DORB pellets (tan-brown) */
-const PROD_COLORS=[[/soy/i,'#cfc678'],[/broken|rice/i,'#e0b254'],[/dorb|bran/i,'#a5733b']];
+const PROD_COLORS=[[/soy/i,'#E9C46A'],[/boil/i,'#B08968'],[/polish/i,'#DDBEA9'],[/broken/i,'#F4A261'],[/dorb|bran/i,'#7F5539']];
+const CUST_PAL=['#1D3557','#2A6F97','#468FAF','#61A5C2','#89C2D9','#A9D6E5','#BEE9E8','#D5F0EE'];
+const ICON={
+  scale:'<path d="M12 3v18M7 21h10M5 7h14"/><path d="M5 7l-3 7a3.5 3.5 0 007 0zM19 7l-3 7a3.5 3.5 0 007 0z"/>',
+  cash:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 10v4M18 10v4"/>',
+  bars:'<path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/>',
+  pie:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15.5 3.6A9 9 0 0 1 20.4 8.5H15.5z"/>',
+  truck:'<path d="M1 4h14v12H1zM15 8h4l4 4v4h-8z"/><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="18.5" r="2.3"/>'
+};
+const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const BAR_PAL=['#2e7d4f','#d49a1f','#3b7ea1','#b5432f','#7a8f3a','#6b5b95','#2f8f83','#c06c9a','#d9822b','#8a8f98'];
 const barColor=i=>i<BAR_PAL.length?BAR_PAL[i]:`hsl(${Math.round(i*137.5)%360} 48% 46%)`;
 const colorFor=(name,i)=>{const m=PROD_COLORS.find(([r])=>r.test(name));return m?m[1]:PAL[i%PAL.length];};
@@ -403,7 +430,7 @@ function renderCharts(){
   const cs=getComputedStyle(document.documentElement);
   Chart.defaults.color=cs.getPropertyValue('--muted').trim();
   Chart.defaults.borderColor=cs.getPropertyValue('--line').trim();
-  Chart.defaults.font.family=cs.getPropertyValue('--font');
+  Chart.defaults.font.family=cs.getPropertyValue('--font'); Chart.defaults.font.size=13;
   const dark=matchMedia('(prefers-color-scheme:dark)').matches; const green=dark?'#8fbf4f':'#33552b', gold=dark?'#ccd065':'#a9b83a';
   const base={responsive:true,maintainAspectRatio:false};
 
@@ -411,14 +438,14 @@ function renderCharts(){
   const lum=h=>{const n=parseInt(h.slice(1),16);return (0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;};
   const ink=cs.getPropertyValue('--ink').trim(), surf=cs.getPropertyValue('--surface').trim();
   const labels=kind=>({id:'lbl'+kind,afterDatasetsDraw(ch){
-    const ctx=ch.ctx; ctx.save(); ctx.font='600 11.5px '+Chart.defaults.font.family; ctx.textAlign='center';
+    const ctx=ch.ctx; ctx.save(); ctx.font='600 12.5px '+Chart.defaults.font.family; ctx.textAlign='center';
     ch.data.datasets.forEach((ds,di)=>ch.getDatasetMeta(di).data.forEach((el,i)=>{
       const v=ds.data[i]; if(!v) return;
       if(kind==='pie'){
         const tot=ds.data.reduce((a,b)=>a+b,0)||1, p=v/tot*100; if(p<3) return;
         const pos=el.tooltipPosition(); ctx.fillStyle=lum(ds.backgroundColor[i])>0.55?'#1b2410':'#fff';
         ctx.textBaseline='middle'; ctx.fillText(fmt(p,2)+'%',pos.x,pos.y);
-      } else { ctx.fillStyle=ink; ctx.textBaseline='bottom'; ctx.fillText(fmt(v,2),el.x,el.y-4); }
+      } else { ctx.fillStyle=ink; ctx.textBaseline='bottom'; ctx.fillText(fmt(v,1),el.x,el.y-4); }
     })); ctx.restore();}});
   const colors=byItem.map((x,i)=>colorFor(x.k,i)), totSales=byItem.reduce((a,x)=>a+x.sales,0)||1;
   const pctCol=dark?'#9cc27a':'#7a9e5c', muted=cs.getPropertyValue('--muted').trim();
@@ -452,12 +479,13 @@ function renderCharts(){
   const byDay=[...group(VIEW.filter(d=>d.iso),d=>d.iso)].sort((a,b)=>a[0]<b[0]?-1:1);
   const multiYear=new Set(DATA.map(x=>x.iso.slice(0,4)).filter(Boolean)).size>1;
   const lab=iso=>{const [y,m,d]=iso.split('-'); return +d+' '+MONN[+m-1]+(multiYear?" '"+y.slice(2):'');};
+  const dayVals=byDay.map(x=>sum(x[1],'sw')/1000), peak=dayVals.indexOf(Math.max(...dayVals));
   mk('c3',{type:'bar',data:{labels:byDay.map(x=>lab(x[0])),datasets:[
-      {label:'Supply (MT)',data:byDay.map(x=>+(sum(x[1],'sw')/1000).toFixed(2)),backgroundColor:byDay.map((x,i)=>barColor(i))}]},
-    options:{...base,plugins:{legend:{display:false}},scales:{x:{ticks:{maxRotation:60,autoSkip:true}}}}});
+      {label:'Supply (MT)',data:byDay.map(x=>+(sum(x[1],'sw')/1000).toFixed(2)),backgroundColor:byDay.map((x,i)=>i===peak?'#2B5C8F':'#5B8DEF')}]},
+    options:{...base,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxRotation:60,autoSkip:true}},y:{grid:{color:dark?'#2a3830':'#CBD5E1'}}}}});
 
   const byCust=[...group(VIEW,d=>d.cust)].map(([k,v])=>({k,s:sum(v,'sales')})).sort((a,b)=>b.s-a.s).slice(0,8);
-  mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:byCust.map((x,i)=>barColor(i))}]},
+  mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:byCust.map((x,i)=>CUST_PAL[Math.min(i,CUST_PAL.length-1)])}]},
     options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+money(c.raw)}}},
       scales:{x:{ticks:{callback:v=>v>=1e7?(v/1e7)+' Cr':v>=1e5?(v/1e5)+' L':v}}}}});
 }
@@ -469,9 +497,10 @@ function tableHtml(cols,rows,foot){
 }
 function renderPo(){
   const rows=[...group(VIEW,d=>d.po+'||'+d.cust+'||'+d.item)].map(([k,v])=>({
-    po:v[0].po,cust:v[0].cust,item:v[0].item,n:v.length,sw:sum(v,'sw'),rw:sum(v,'rw'),sales:sum(v,'sales')
+    po:v[0].po,cust:v[0].cust,item:v[0].item,n:v.length,sw:sum(v,'sw'),rw:sum(v,'rw'),sales:sum(v,'sales'),rates:[...new Set(v.map(d=>d.rate).filter(Boolean))]
   })).sort((a,b)=>b.sales-a.sales);
   const cols=[{t:'PO No',k:'po'},{t:'Customer',k:'cust'},{t:'Product',k:'item'},{t:'Trucks',k:'n',n:1},
+    {t:'PO Rate (BDT/kg)',k:'rate',n:1,f:r=>!r.rates.length?'-':r.rates.length===1?fmt(r.rates[0],2):fmt(Math.min(...r.rates),2)+' - '+fmt(Math.max(...r.rates),2)},
     {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},
     {t:'Sales value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
   const t=$('poTable'); t.innerHTML=tableHtml(cols,rows);
@@ -526,6 +555,7 @@ $('csv').onclick=()=>{
   }
   setView(store.get('view','dash'));
   load();
+  setInterval(()=>{ if(!document.hidden) load(); },300000);
 })();
 </script>
 </body>
