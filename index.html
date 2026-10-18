@@ -158,6 +158,15 @@ button.link:hover{background:color-mix(in srgb,var(--green) 12%,var(--surface))}
 .pieleg b{grid-column:3;grid-row:1;text-align:right;white-space:nowrap}
 .pieleg .vl{grid-column:2;grid-row:2;font-size:13px;color:var(--muted);white-space:nowrap}
 @media (max-width:700px){.piewrap{grid-template-columns:1fr}}
+.piewrap{grid-template-columns:minmax(0,.85fr) minmax(0,1fr);gap:28px}
+.piewrap .chart{height:240px}
+.pieleg{grid-template-columns:14px max-content max-content;column-gap:10px;row-gap:14px;align-content:center;justify-content:start}
+.pieleg li{display:contents}
+.pieleg li i{grid-row:auto;margin:0;align-self:center}
+.pieleg .nm{grid-column:auto;font-weight:600}
+.pieleg b{grid-column:auto;grid-row:auto;text-align:left;font-weight:600}
+.pieleg li.tot{display:flex;grid-column:1/-1;gap:10px;border-top:1px solid var(--line);padding-top:12px;font-weight:700}
+@media (max-width:700px){.piewrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -465,7 +474,7 @@ function renderCharts(){
   mk('c1',{type:'pie',plugins:[pieIn],data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
     options:{...base,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: BDT ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
   $('c1leg').innerHTML=byItem.map((x,i)=>{const pc=x.sales/totSales*100;
-    return `<li><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><b>${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b><span class="vl">${money(x.sales)}</span></li>`;}).join('');
+    return `<li title="${esc(x.k)}: ${money(x.sales)}"><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><b>– ${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')+(byItem.length?'<li class="tot"><span>Total</span><b>= 100%</b></li>':'');
   $('c1tot').textContent='Total sales '+money(sum(VIEW,'sales'));
   $('c2tot').textContent='Total supply '+mt(sum(VIEW,'sw'));
   mk('c2',{type:'bar',plugins:[labels('bar')],data:{labels:byItem.map(x=>x.k),datasets:[
