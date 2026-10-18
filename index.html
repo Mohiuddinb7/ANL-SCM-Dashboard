@@ -10,80 +10,106 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
-  --bg:#eef1ee; --surface:#ffffff; --ink:#17231c; --muted:#66756c; --line:#d9e0db;
-  --green:#1f6b4a; --gold:#d49a1f; --blue:#3b7ea1; --red:#b5432f; --soft:#f5f7f5;
+  --bg:#edf0ec; --surface:#ffffff; --ink:#16231c; --muted:#65746b; --line:#dbe2dc; --soft:#f4f7f4;
+  --green:#1f6b4a; --gold:#d9a21b; --red:#b5432f; --band:#12392b; --h:40px;
   --font:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#0f1713; --surface:#17211b; --ink:#e7eee9; --muted:#93a399; --line:#2a3830; --green:#4fb98a; --gold:#e8b445; --blue:#6fb0d3; --red:#e57a66; --soft:#1c2822;}
+  :root{--bg:#0e1612; --surface:#16211b; --ink:#e7eee9; --muted:#93a399; --line:#2a3830; --soft:#1b2821; --green:#4fb98a; --gold:#e8b445; --red:#e57a66; --band:#0b2a1e;}
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
-.wrap{max-width:1400px;margin:0 auto;padding:20px}
-header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:6px}
-h1{margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em}
-.sub{color:var(--muted);margin-top:2px}
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:150px}
-select,input,button{font:inherit;color:var(--ink)}
-select,input[type=date],input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
-select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600}
-button.primary{background:var(--green);border-color:var(--green);color:#fff}
-@media (prefers-color-scheme:dark){button.primary{color:#07140d}}
-button:hover{filter:brightness(.96)}
-#refresh svg{vertical-align:-3px;margin-right:6px}
+.wrap{max-width:1360px;margin:0 auto;padding:20px 20px 48px}
+
+/* top band */
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px;background:var(--band);color:#fff;border-radius:14px;padding:24px 28px;border-bottom:4px solid var(--gold)}
+h1{margin:0;font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted)}
+header.top .sub{color:#b9cfc3;margin-top:8px;font-size:14px}
+.controls{display:flex;gap:12px;align-items:flex-end}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:500;color:var(--muted);min-width:0}
+header.top label.f{color:#b9cfc3;width:220px}
+
+select,input[type=date],input[type=search],button{height:var(--h);font:inherit;border-radius:8px}
+select,input[type=date],input[type=search]{width:100%;background:var(--surface);color:var(--ink);border:1px solid var(--line);padding:0 12px}
+button{padding:0 18px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+button.primary{background:var(--gold);border-color:var(--gold);color:#1b1500}
+button:hover{filter:brightness(.95)}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #refresh.spin svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){#refresh.spin svg{animation:none}}
-.status{font-size:12.5px;color:var(--muted);margin:8px 0 14px;min-height:18px}
+
+.status{font-size:13px;color:var(--muted);padding:12px 4px;min-height:44px}
 .status.err{color:var(--red)}
 .status b{color:var(--ink)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
-.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:14px;margin-bottom:14px;align-items:end}
-.filters label.f{min-width:0}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+
+/* filters: 4 equal columns, controls share one height */
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 16px;padding:18px 20px;margin-bottom:16px;align-items:end}
+.filters button{width:100%}
+
 /* KPI strip */
-.kpis{display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;margin-bottom:14px;overflow:hidden}
-.kpi{padding:16px 18px;border-right:1px solid var(--line)}
+.kpis{display:grid;grid-template-columns:2.1fr 1.1fr 1.1fr .8fr;margin-bottom:20px;overflow:hidden}
+.kpi{padding:20px 22px;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:flex-start}
 .kpi:last-child{border-right:0}
-.kpi .l{color:var(--muted);font-size:12.5px}
-.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
-.kpi .s{color:var(--muted);font-size:12px;margin-top:2px}
-.flow{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.bar{height:8px;border-radius:4px;background:var(--soft);margin-top:10px;overflow:hidden;border:1px solid var(--line)}
-.bar i{display:block;height:100%;background:var(--gold)}
+.kpi .l{color:var(--muted);font-size:13px;font-weight:500}
+.kpi .v{font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.kpi .s{color:var(--muted);font-size:12.5px;margin-top:4px}
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.bar{height:10px;border-radius:5px;background:var(--soft);margin-top:16px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--gold))}
 .bad{color:var(--red)} .good{color:var(--green)}
-.tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
-.tabs button{border:0;border-radius:0;background:transparent;padding:8px 16px}
-.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.card{padding:14px 16px}
-.card h2{margin:0 0 10px;font-size:15px;font-weight:600}
-.chart{position:relative;height:270px}
+
+/* view switch row */
+.viewrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--surface);gap:2px}
+.tabs button{height:34px;border:0;background:transparent;padding:0 18px;border-radius:7px}
+.tabs button[aria-pressed=true]{background:var(--band);color:#fff}
+
+/* dashboard grid */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{padding:18px 20px}
+.card h2,.tbar h2{margin:0 0 14px;font-size:15px;font-weight:600}
+.chart{position:relative;height:300px}
 .full{grid-column:1/-1}
-.scroll{overflow:auto;max-height:560px;border-top:1px solid var(--line)}
+
+/* tables */
+.tbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px}
+.tbar h2{margin:0}
+.scroll{overflow:auto;max-height:580px;border-top:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;white-space:nowrap}
-th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line)}
-th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:12.5px;cursor:pointer;user-select:none;z-index:1}
+th,td{padding:11px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:13px;color:var(--muted);cursor:pointer;user-select:none;z-index:1}
 th.n,td.n{text-align:right}
+tbody tr:nth-child(even){background:color-mix(in srgb,var(--soft) 55%,transparent)}
 tbody tr:hover{background:var(--soft)}
 tfoot td{position:sticky;bottom:0;background:var(--soft);font-weight:700;border-top:2px solid var(--line)}
-.tbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:10px;flex-wrap:wrap}
-.empty{padding:40px;text-align:center;color:var(--muted)}
+.empty{padding:48px;text-align:center;color:var(--muted)}
 .hidden{display:none!important}
-@media (max-width:900px){
+
+@media (max-width:1000px){
+  .filters{grid-template-columns:repeat(2,1fr)}
   .kpis{grid-template-columns:1fr 1fr}
   .kpi{border-bottom:1px solid var(--line)}
   .kpi:first-child{grid-column:1/-1}
   .grid{grid-template-columns:1fr}
-  .flow{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .wrap{padding:12px 12px 40px}
+  header.top{padding:18px}
+  header.top label.f{width:100%}
+  .controls{width:100%}
+  .controls label.f{flex:1}
+  .flow{grid-template-columns:1fr;gap:12px}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header class="top">
     <div>
       <h1>Agrigate Network Ltd.</h1>
       <div class="sub">Truck-wise supply dashboard</div>
@@ -92,9 +118,8 @@ tfoot td{position:sticky;bottom:0;background:var(--soft);font-weight:700;border-
       <label class="f">Sheet (month)
         <select id="sheet"></select>
       </label>
-      <button id="addTab" title="Add a sheet tab that is missing from the list">Add sheet</button>
       <button id="refresh" class="primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Refresh
+        <svg width="16" height="16" style="flex:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Refresh
       </button>
     </div>
   </header>
@@ -113,7 +138,7 @@ tfoot td{position:sticky;bottom:0;background:var(--soft);font-weight:700;border-
 
   <section class="panel kpis" id="kpis" aria-label="Summary"></section>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+  <div class="viewrow">
     <div class="tabs" role="group" aria-label="View">
       <button id="vDash" aria-pressed="true">Dashboard</button>
       <button id="vTable" aria-pressed="false">Table view</button>
@@ -127,7 +152,7 @@ tfoot td{position:sticky;bottom:0;background:var(--soft);font-weight:700;border-
     <div class="panel card full"><h2>Daily supply vs received (MT)</h2><div class="chart"><canvas id="c3"></canvas></div></div>
     <div class="panel card full"><h2>Top customers by sales value</h2><div class="chart"><canvas id="c4"></canvas></div></div>
     <div class="panel full">
-      <div class="tbar"><h2 style="margin:0;font-size:15px">PO-wise summary</h2><span class="sub">Grouped by PO, customer and product</span></div>
+      <div class="tbar"><h2>PO-wise summary</h2><span class="sub">Grouped by PO, customer and product</span></div>
       <div class="scroll"><table id="poTable"></table></div>
     </div>
   </section>
@@ -144,6 +169,9 @@ tfoot td{position:sticky;bottom:0;background:var(--soft);font-weight:700;border-
 <script>
 /* ---------- Settings ---------- */
 const SHEET_ID = '1en28uB-YyAWkb8gz2qe3i_w0xMJrk60lCZkOgWiP3_o';
+/* Optional but most reliable: paste your Google Apps Script Web App URL here (ends with /exec).
+   Leave empty to read the sheet directly (needs "Anyone with the link: Viewer"). */
+const APPS_SCRIPT_URL = '';
 const DEFAULT_TABS = [
   "Supply Details Oct'26","Supply Details Sep'26","Supply Details Aug'26",
   "Supply Details July'26","Supply Details June'26","Supply Details May'26","Supply Details Apr'26"
@@ -188,7 +216,7 @@ function parseCSV(t){
 }
 
 /* ---------- Data loading ---------- */
-let tabs = [...DEFAULT_TABS, ...store.get('extraTabs',[]).filter(t=>!DEFAULT_TABS.includes(t))];
+let tabs = [...DEFAULT_TABS];
 let DATA = [], VIEW = [], sortKey='iso', sortDir=-1;
 
 async function fetchCsv(name, range){
@@ -231,10 +259,40 @@ function rowsToRecords(matrix, tab){
   return out;
 }
 async function fetchTab(name){
-  let m;
-  try{ m = await fetchCsv(name,true); rowsToRecords(m,name); }
-  catch(e){ m = await fetchCsv(name,false); }
-  return rowsToRecords(m,name);
+  if(APPS_SCRIPT_URL){
+    const res = await fetch(APPS_SCRIPT_URL+'?sheet='+encodeURIComponent(name));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const j = await res.json();
+    if(j.error) throw new Error(j.error);
+    return rowsToRecords(j.values,name);
+  }
+  // Method 1: script-tag loading (not affected by CORS). Method 2: plain CSV fetch.
+  try{ return rowsToRecords(await gvizScript(name),name); }
+  catch(e1){
+    try{ return rowsToRecords(await fetchCsv(name,true),name); }
+    catch(e2){ throw new Error(e1.message); }
+  }
+}
+function gvizScript(name){
+  return new Promise((resolve,reject)=>{
+    const cb='gv_'+Math.random().toString(36).slice(2);
+    const s=document.createElement('script');
+    const done=()=>{clearTimeout(t);delete window[cb];s.remove();window.removeEventListener('error',onErr);};
+    const t=setTimeout(()=>{done();reject(new Error('No data returned. Check the tab name and that the sheet is shared as Anyone with the link'));},15000);
+    const onErr=ev=>{ if(ev.filename&&ev.filename.includes('docs.google.com')){done();reject(new Error('Google returned a page instead of data. Sheet may be private'));} };
+    window.addEventListener('error',onErr);
+    window[cb]=resp=>{
+      done();
+      if(resp.status==='error'){ const e=resp.errors&&resp.errors[0]; reject(new Error(e?(e.detailed_message||e.message):'Query error')); return; }
+      const tbl=resp.table;
+      const head=tbl.cols.map(c=>c.label||'');
+      const rows=tbl.rows.map(r=>(r.c||[]).map(c=>c?(c.f!=null?c.f:(c.v!=null?String(c.v):'')):''));
+      resolve([head,...rows]);
+    };
+    s.onerror=()=>{done();reject(new Error('Request blocked. Check internet, ad-blocker, or sheet sharing'));};
+    s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(name)}&headers=1&range=A3:R&_=${Date.now()}`;
+    document.head.appendChild(s);
+  });
 }
 
 async function load(){
@@ -395,12 +453,6 @@ $('vTable').onclick=()=>setView('table');
 ['fItem','fCust','fPo','fMonth','fFrom','fTo'].forEach(id=>$(id).onchange=render);
 $('fQ').oninput=render;
 $('reset').onclick=()=>{ ['fItem','fCust','fPo','fMonth','fFrom','fTo','fQ'].forEach(id=>$(id).value=''); render(); };
-$('addTab').onclick=()=>{
-  const n=(prompt('Type the exact sheet tab name, for example: Supply Details Nov\'26')||'').trim();
-  if(!n||tabs.includes(n)) return;
-  tabs.unshift(n); store.set('extraTabs',tabs.filter(t=>!DEFAULT_TABS.includes(t)));
-  buildSheetSelect(n); store.set('sheet',n); load();
-};
 $('csv').onclick=()=>{
   const head=['Date','Product','Customer','PO No','Truck No','Supply (kg)','Received (kg)','Difference (kg)','Sales value'];
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
@@ -411,9 +463,18 @@ $('csv').onclick=()=>{
 };
 
 /* ---------- Start ---------- */
-buildSheetSelect(store.get('sheet',tabs[1]||tabs[0]));
-setView(store.get('view','dash'));
-load();
+(async function init(){
+  if(APPS_SCRIPT_URL){
+    try{
+      const r = await fetch(APPS_SCRIPT_URL+'?action=tabs');
+      const j = await r.json();
+      if(j.tabs && j.tabs.length) tabs = j.tabs;
+    }catch(e){}
+  }
+  buildSheetSelect(store.get('sheet',tabs[1]||tabs[0]));
+  setView(store.get('view','dash'));
+  load();
+})();
 </script>
 </body>
 </html>
