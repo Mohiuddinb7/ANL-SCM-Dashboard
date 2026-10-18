@@ -150,6 +150,14 @@ button.link{border:0;background:none;height:auto;padding:0 6px;color:#4b7a22;fon
 button.link{height:var(--h);padding:0 18px;border:1px solid var(--green);border-radius:10px;background:var(--surface);color:#33552b;text-decoration:none}
 button.link:hover{background:color-mix(in srgb,var(--green) 12%,var(--surface))}
 @media (prefers-color-scheme:dark){.live{color:var(--green)}button.link{color:#cfe6a8}}
+.piewrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center}
+.pieleg{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.pieleg li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;column-gap:10px;row-gap:1px;align-items:center}
+.pieleg li i{grid-row:1/3;align-self:start;margin-top:4px;width:12px;height:12px;border-radius:3px}
+.pieleg .nm{grid-column:2;font-weight:600}
+.pieleg b{grid-column:3;grid-row:1;text-align:right;white-space:nowrap}
+.pieleg .vl{grid-column:2;grid-row:2;font-size:13px;color:var(--muted);white-space:nowrap}
+@media (max-width:700px){.piewrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -188,7 +196,7 @@ button.link:hover{background:color-mix(in srgb,var(--green) 12%,var(--surface))}
   </div>
 
   <section id="dash" class="grid">
-    <div class="panel card"><h2>Product-wise sales value (%)<span class="ctot" id="c1tot"></span></h2><div class="chart"><canvas id="c1"></canvas></div></div>
+    <div class="panel card"><h2>Product-wise sales value (%)<span class="ctot" id="c1tot"></span></h2><div class="piewrap"><div class="chart"><canvas id="c1"></canvas></div><ul class="pieleg" id="c1leg"></ul></div></div>
     <div class="panel card"><h2>Product-wise supply weight (MT)<span class="ctot" id="c2tot"></span></h2><div class="chart"><canvas id="c2"></canvas></div></div>
     <div class="panel card full"><h2>Daily supply weight (MT)</h2><div class="chart"><canvas id="c3"></canvas></div></div>
     <div class="panel card full"><h2>Top customers by sales value</h2><div class="chart"><canvas id="c4"></canvas></div></div>
@@ -448,28 +456,16 @@ function renderCharts(){
       } else { ctx.fillStyle=ink; ctx.textBaseline='bottom'; ctx.fillText(fmt(v,1),el.x,el.y-4); }
     })); ctx.restore();}});
   const colors=byItem.map((x,i)=>colorFor(x.k,i)), totSales=byItem.reduce((a,x)=>a+x.sales,0)||1;
-  const pctCol=dark?'#9cc27a':'#7a9e5c', muted=cs.getPropertyValue('--muted').trim();
-  const pieOut={id:'pieOut',afterDatasetsDraw(ch){
+  const pieIn={id:'pieIn',afterDatasetsDraw(ch){
     const ctx=ch.ctx, ds=ch.data.datasets[0], tot=ds.data.reduce((a,b)=>a+b,0); if(!tot) return;
-    const ff=Chart.defaults.font.family; let lastR=-1e9,lastL=1e9;
-    ctx.save();
-    ch.getDatasetMeta(0).data.forEach((el,i)=>{
-      const v=ds.data[i]; if(!v) return; const pc=v/tot*100;
-      if(pc>=7){ const pos=el.tooltipPosition(); ctx.font='700 14px '+ff; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=lum(colors[i])>0.55?'#1b2410':'#fff'; ctx.fillText(fmt(pc,1)+'%',pos.x,pos.y); }
-      const a=(el.startAngle+el.endAngle)/2, R=el.outerRadius, c=Math.cos(a), sn=Math.sin(a), right=c>=0;
-      const p1=[el.x+c*(R-3),el.y+sn*(R-3)], p2=[el.x+c*(R+16),el.y+sn*(R+16)];
-      let y=p2[1]; if(right){y=Math.max(y,lastR+32);lastR=y;} else {y=Math.min(y,lastL-32);lastL=y;}
-      const p3=[p2[0]+(right?22:-22),y];
-      ctx.strokeStyle=muted; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.lineTo(p3[0],p3[1]); ctx.stroke();
-      const tx=p3[0]+(right?6:-6); ctx.textAlign=right?'left':'right';
-      ctx.textBaseline='bottom'; ctx.font='700 13px '+ff; ctx.fillStyle=ink; ctx.fillText(byItem[i].k,tx,y+1);
-      ctx.textBaseline='top'; ctx.font='500 12.5px '+ff; ctx.fillStyle=pctCol; ctx.fillText(money(v)+(pc<7?'  ·  '+fmt(pc,1)+'%':''),tx,y+3);
-    });
+    ctx.save(); ctx.font='700 14px '+Chart.defaults.font.family; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ch.getDatasetMeta(0).data.forEach((el,i)=>{ const pc=ds.data[i]/tot*100; if(pc<6) return;
+      const pos=el.tooltipPosition(); ctx.fillStyle=lum(colors[i])>0.55?'#1b2410':'#fff'; ctx.fillText(fmt(pc,1)+'%',pos.x,pos.y); });
     ctx.restore();}};
-  mk('c1',{type:'pie',plugins:[pieOut],data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
-    options:{...base,layout:{padding:window.innerWidth<560?{left:70,right:70,top:34,bottom:34}:{left:140,right:140,top:34,bottom:34}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: BDT ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
+  mk('c1',{type:'pie',plugins:[pieIn],data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
+    options:{...base,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: BDT ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
+  $('c1leg').innerHTML=byItem.map((x,i)=>{const pc=x.sales/totSales*100;
+    return `<li><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><b>${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b><span class="vl">${money(x.sales)}</span></li>`;}).join('');
   $('c1tot').textContent='Total sales '+money(sum(VIEW,'sales'));
   $('c2tot').textContent='Total supply '+mt(sum(VIEW,'sw'));
   mk('c2',{type:'bar',plugins:[labels('bar')],data:{labels:byItem.map(x=>x.k),datasets:[
