@@ -255,6 +255,45 @@ header.top .sub{color:#6b7a70;font-size:14.5px;font-weight:500;margin-top:6px}
   .controls .chip{flex:1 1 auto;justify-content:center}
   #refresh{flex:1 1 100%}
 }
+.sheetinfo{margin:0 0 14px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:13px}
+.sheetinfo ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 18px}
+.sheetinfo li span{color:var(--muted);font-size:12px;margin-left:8px}
+.sheetinfo li.ok b{color:#33552b}
+.sheetinfo li.bad{color:var(--red);grid-column:1/-1;overflow-wrap:anywhere}
+.status a{color:#4b7a22;font-weight:600}
+@media (prefers-color-scheme:dark){.sheetinfo li.ok b{color:#cfe6a8}.status a{color:var(--green)}}
+.sheetinfo li.warn{color:#8a5a00;grid-column:1/-1;overflow-wrap:anywhere}
+@media (prefers-color-scheme:dark){.sheetinfo li.warn{color:#e8b445}}
+/* pie legend as a small table: product | sales | share */
+.piewrap{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+.pieleg{grid-template-columns:14px minmax(0,1fr) auto auto;column-gap:12px;row-gap:13px;justify-content:stretch;align-content:center}
+.pieleg li{display:contents}
+.pieleg .nm{font-weight:600}
+.pieleg .vl{grid-column:auto;grid-row:auto;font-size:14px;color:var(--ink);font-weight:500;white-space:nowrap}
+.pieleg b{grid-column:auto;grid-row:auto;font-weight:700;white-space:nowrap}
+.pieleg .r{text-align:right}
+.pieleg li.hd>*{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding-bottom:2px}
+.pieleg li.tot{display:contents;border:0;padding:0}
+.pieleg li.tot>*{background:color-mix(in srgb,var(--green) 14%,var(--surface));padding:10px 0;font-weight:700;color:var(--ink)}
+.pieleg li.tot>:first-child{border-radius:10px 0 0 10px}
+.pieleg li.tot>:last-child{border-radius:0 10px 10px 0;padding-right:12px}
+.pieleg li.tot .nm{padding-left:0}
+@media (max-width:700px){.piewrap{grid-template-columns:1fr}}
+/* PO-wise summary: fixed, balanced columns */
+#poTable{table-layout:fixed;min-width:1100px}
+#poTable th,#poTable td{padding:13px 14px;overflow:hidden;text-overflow:ellipsis}
+#poTable th:nth-child(1),#poTable td:nth-child(1){width:14%}
+#poTable th:nth-child(2),#poTable td:nth-child(2){width:16%}
+#poTable th:nth-child(3),#poTable td:nth-child(3){width:12%}
+#poTable th:nth-child(4),#poTable td:nth-child(4){width:16%}
+#poTable th:nth-child(5),#poTable td:nth-child(5){width:13%}
+#poTable th:nth-child(6),#poTable td:nth-child(6){width:14%}
+#poTable th:nth-child(7),#poTable td:nth-child(7){width:15%}
+#poTable th:nth-child(3),#poTable td:nth-child(3),
+#poTable th:nth-child(4),#poTable td:nth-child(4),
+#poTable th:nth-child(5),#poTable td:nth-child(5){text-align:center}
+#poTable th{white-space:nowrap;text-overflow:clip}
+#poTable td:nth-child(4){font-weight:400;overflow:visible;text-overflow:clip;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -275,8 +314,10 @@ header.top .sub{color:#6b7a70;font-size:14.5px;font-weight:500;margin-top:6px}
     </div>
   </header>
   <div id="status" class="status" role="status"></div>
+  <div id="sheetInfo" class="sheetinfo hidden"></div>
 
   <section class="filterbar" aria-label="Filters">
+    <select id="fYear" aria-label="Year"></select>
     <select id="fMonth" aria-label="Month"></select>
     <select id="fDate" aria-label="Date"></select>
     <select id="fItem" aria-label="Product"></select>
@@ -321,10 +362,9 @@ const SHEET_ID = '1en28uB-YyAWkb8gz2qe3i_w0xMJrk60lCZkOgWiP3_o';
 /* Optional but most reliable: paste your Google Apps Script Web App URL here (ends with /exec).
    Leave empty to read the sheet directly (needs "Anyone with the link: Viewer"). */
 const APPS_SCRIPT_URL = '';
-const DEFAULT_TABS = [
-  "Supply Details Oct'26","Supply Details Sep'26","Supply Details Aug'26",
-  "Supply Details July'26","Supply Details June'26","Supply Details May'26","Supply Details Apr'26"
-];
+/* Only "Supply Details" tabs are read: Sep 2025 to Oct 2026 (14 sheets). Other tabs are ignored. */
+const MONTHS=[['Sep',25],['Oct',25],['Nov',25],['Dec',25],['Jan',26],['Feb',26],['Mar',26],['Apr',26],['May',26],['June',26],['July',26],['Aug',26],['Sep',26],['Oct',26]];
+const DEFAULT_TABS = MONTHS.map(([m,y])=>`Supply Details ${m}'${y}`).reverse();
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
 const fmt = (n,d=0) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -342,12 +382,14 @@ const num = s => { const v = parseFloat(String(s??'').replace(/,/g,'')); return 
 const pad = n => String(n).padStart(2,'0');
 
 function parseDate(s){
-  s = String(s||'').trim(); if(!s) return null;
-  let m = s.match(/^(\d{1,2})[-\/ ]([A-Za-z]{3,})[-\/ ,]*(\d{2,4})$/);
-  if(m){ const mo = MON[m[2].slice(0,3).toLowerCase()]; if(mo===undefined) return null;
-    const y = +m[3]<100 ? 2000+ +m[3] : +m[3]; return {y,m:mo,d:+m[1]}; }
-  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if(m){ const y = +m[3]<100 ? 2000+ +m[3] : +m[3]; return {y,m:+m[2]-1,d:+m[1]}; }
+  s = String(s??'').trim(); if(!s) return null;
+  const yr = v => +v<100 ? 2000+ +v : +v; let m;
+  if(m=s.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})/)) return {y:+m[1],m:+m[2],d:+m[3]};
+  if(m=s.match(/^(\d{1,2})[-\/. ,]*([A-Za-z]{3,})[-\/. ,]*(\d{2,4})$/)){ const mo=MON[m[2].slice(0,3).toLowerCase()]; return mo===undefined?null:{y:yr(m[3]),m:mo,d:+m[1]}; }
+  if(m=s.match(/^([A-Za-z]{3,})[-\/. ]*(\d{1,2})[,\s-]+(\d{2,4})$/)){ const mo=MON[m[1].slice(0,3).toLowerCase()]; return mo===undefined?null:{y:yr(m[3]),m:mo,d:+m[2]}; }
+  if(m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/)) return {y:+m[1],m:+m[2]-1,d:+m[3]};
+  if(m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/)){ let a=+m[1],b=+m[2]; if(b>12&&a<=12){const t=a;a=b;b=t;} return {y:yr(m[3]),m:b-1,d:a}; }
+  if(/^\d{5}(\.\d+)?$/.test(s)){ const d=new Date(Date.UTC(1899,11,30)+Math.floor(+s)*864e5); return {y:d.getUTCFullYear(),m:d.getUTCMonth(),d:d.getUTCDate()}; }
   return null;
 }
 function parseCSV(t){
@@ -376,19 +418,25 @@ async function fetchCsv(name, range){
   if(/^\s*<(!doctype|html)/i.test(txt)) throw new Error('Sheet is not public');
   return parseCSV(txt);
 }
+const isItem=x=>['item','items','itemname','product','productname'].includes(x);
+const isCust=x=>x==='customername'||x==='customer'||x==='partyname'||x==='party'||x.startsWith('customer');
+const cleanPo=v=>{ const t=String(v??'').trim(); return /^\d{1,3}(,\d{3})+(\.0+)?$/.test(t)?t.replace(/,/g,'').replace(/\.0+$/,''):t.replace(/^(\d+)\.0+$/,'$1'); };
 function rowsToRecords(matrix, tab){
   let h = -1;
   for(let i=0;i<Math.min(matrix.length,15);i++){
     const n = matrix[i].map(norm);
-    if(n.includes('item') && n.includes('customername')){ h=i; break; }
+    if(n.some(isItem) && n.some(isCust)){ h=i; break; }
   }
   if(h<0) throw new Error('Header row not found in "'+tab+'"');
   const hd = matrix[h].map(norm);
   const col = fn => hd.findIndex(fn);
   const ix = {
-    item:col(x=>x==='item'), cust:col(x=>x==='customername'), po:col(x=>x==='wopono'),
-    date:col(x=>x==='deliverydate'), truck:col(x=>x==='truckno'),
-    sw:col(x=>x.startsWith('sweight')), rw:col(x=>x.startsWith('rweight')), sales:col(x=>x==='salesvalue'), rate:col(x=>x==='woporate')
+    item:col(isItem), cust:col(isCust), po:col(x=>['wopono','pono','wono','wopo'].includes(x)),
+    date:(()=>{let i=col(x=>x==='deliverydate'); return i<0?col(x=>['date','supplydate','challandate'].includes(x)):i;})(),
+    truck:col(x=>x==='truckno'||x.startsWith('truck')),
+    sw:col(x=>x.startsWith('sweight')||x.startsWith('supplyweight')||x.startsWith('supplyqty')),
+    rw:col(x=>x.startsWith('rweight')||x.startsWith('receivedweight')),
+    sales:col(x=>x==='salesvalue'||x==='salesamount'||x==='sales'), rate:col(x=>['woporate','porate','rate'].includes(x))
   };
   const out=[];
   for(let i=h+1;i<matrix.length;i++){
@@ -399,15 +447,53 @@ function rowsToRecords(matrix, tab){
     if(!sw && !rw && !sales) continue;
     const dt = parseDate(r[ix.date]);
     out.push({
-      tab, item, cust:(r[ix.cust]||'').trim()||'(blank)', po:(r[ix.po]||'').trim()||'(blank)',
+      tab, item, cust:(r[ix.cust]||'').trim()||'(blank)', po:cleanPo(r[ix.po])||'(blank)',
       truck:(r[ix.truck]||'').trim(), sw, rw, sales, rate:num(r[ix.rate]),
       iso: dt?`${dt.y}-${pad(dt.m+1)}-${pad(dt.d)}`:'',
-      month: dt?`${dt.y}-${pad(dt.m+1)}`:''
+      month: dt?`${dt.y}-${pad(dt.m+1)}`:'',
+      year: dt?String(dt.y):''
     });
   }
   return out;
 }
+const TAB_RE=/^Supply[ _]Details[ _]([A-Za-z]+)[ _'’]?(\d{2})$/;
+/* The same tab may be named "Supply Details Sep'26" or "Supply_Details_Sep_26": try each spelling, keep the one that works. */
+const LONGM={Jan:'January',Feb:'February',Mar:'March',Apr:'April',May:'May',Jun:'June',Jul:'July',Aug:'August',Sep:'September',Oct:'October',Nov:'November',Dec:'December'};
+function variants(name){
+  const m=name.match(TAB_RE); if(!m||APPS_SCRIPT_URL) return [name];
+  const [,M,Y]=m, k=M.slice(0,3)[0].toUpperCase()+M.slice(1,3).toLowerCase();
+  const forms=[...new Set([M,...(k==='Sep'?['Sept']:[]),k,LONGM[k]].filter(Boolean))], out=[];
+  for(const f of forms) out.push(`Supply Details ${f}'${Y}`,`Supply_Details_${f}_${Y}`,`Supply Details ${f} ${Y}`,`Supply Details ${f}’${Y}`,`Supply Details ${f}-${Y}`,`Supply_Details_${f}_20${Y}`,`Supply Details ${f} 20${Y}`);
+  return out;
+}
 async function fetchTab(name){
+  if(APPS_SCRIPT_URL) return fetchSheetRecords(name);
+  const m=name.match(TAB_RE);
+  const exp=m?`20${m[2]}-${pad(MON[m[1].slice(0,3).toLowerCase()]+1)}`:'';
+  const cache=store.get('tabNames2',{});
+  const tries=[...new Set([cache[name],...variants(name)].filter(Boolean))];
+  const errs=[]; let empty=null, net=0;
+  for(const nm of tries){
+    try{
+      const recs=await fetchSheetRecords(nm);
+      const dated=recs.filter(r=>r.month);
+      if(exp && dated.length && dated.filter(r=>r.month===exp).length < dated.length*0.5) throw new Error('data belongs to a different month (wrong sheet name?)');
+      if(!recs.length){ if(!empty){ empty=recs; empty._used=nm; } net=0; continue; }   // maybe an unrelated empty sheet: keep trying other spellings
+      if(exp) recs.forEach(r=>{ if(!r.month){ r.month=exp; r.year=exp.slice(0,4); } });
+      recs._used=nm;
+      recs.forEach(r=>r.tab=name);
+      cache[name]=nm; store.set('tabNames2',cache);
+      return recs;
+    }catch(e){
+      errs.push(`"${nm}": ${e.message}`);
+      net = /blocked|No data returned|Google returned a page/i.test(e.message) ? net+1 : 0;
+      if(net>=3) break;
+    }
+  }
+  if(empty){ empty._tried=tries.join(' | '); return empty; }
+  throw new Error(errs.join(' | ')||'Sheet not found: '+name);
+}
+async function fetchSheetRecords(name){
   if(APPS_SCRIPT_URL){
     const res = await fetch(APPS_SCRIPT_URL+'?sheet='+encodeURIComponent(name));
     if(!res.ok) throw new Error('HTTP '+res.status);
@@ -418,11 +504,14 @@ async function fetchTab(name){
   // Method 1: script-tag loading (not affected by CORS). Method 2: plain CSV fetch.
   try{ return rowsToRecords(await gvizScript(name),name); }
   catch(e1){
-    try{ return rowsToRecords(await fetchCsv(name,true),name); }
-    catch(e2){ throw new Error(e1.message); }
+    try{ return rowsToRecords(await gvizScript(name,true),name); }   // header not on row 3: read the whole sheet
+    catch(e2){
+      try{ return rowsToRecords(await fetchCsv(name,true),name); }
+      catch(e3){ throw new Error(e2.message||e1.message); }
+    }
   }
 }
-function gvizScript(name){
+function gvizScript(name,full){
   return new Promise((resolve,reject)=>{
     const cb='gv_'+Math.random().toString(36).slice(2);
     const s=document.createElement('script');
@@ -439,7 +528,7 @@ function gvizScript(name){
       resolve([head,...rows]);
     };
     s.onerror=()=>{done();reject(new Error('Request blocked. Check internet, ad-blocker, or sheet sharing'));};
-    s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(name)}&headers=1&range=A3:R&_=${Date.now()}`;
+    s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(name)}${full?'&headers=0':'&headers=1&range=A3:R'}&_=${Date.now()}`;
     document.head.appendChild(s);
   });
 }
@@ -449,20 +538,31 @@ async function load(){
   $('refresh').classList.add('spin');
   setStatus('Loading data from Google Sheets...'); setLive('load');
   const res = await Promise.allSettled(names.map(fetchTab));
-  const fails=[]; DATA=[];
-  res.forEach((r,i)=> r.status==='fulfilled' ? DATA.push(...r.value) : fails.push(`${names[i]} (${r.reason.message})`));
+  const fails=[], rep=[]; DATA=[];
+  res.forEach((r,i)=>{
+    if(r.status==='fulfilled'){ DATA.push(...r.value); rep.push({n:names[i],ok:true,c:r.value.length,u:r.value._used,t:r.value._tried}); }
+    else { fails.push(names[i]); rep.push({n:names[i],ok:false,e:r.reason.message}); }
+  });
   $('refresh').classList.remove('spin');
   buildFilters();
   render();
   const time = new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
   setLive(fails.length && !DATA.length ? 'off' : 'ok', time);
+  const short=n=>n.replace('Supply Details ','');
+  $('sheetInfo').innerHTML='<ul>'+rep.map(x=>x.ok
+    ? (x.c ? `<li class="ok">✓ <b>${esc(short(x.n))}</b> · ${fmt(x.c)} rows<span>${esc(x.u||'')}</span></li>`
+            : `<li class="warn">⚠ <b>${esc(short(x.n))}</b> · 0 rows: sheet is empty or its tab name was not matched<span>tried: ${esc(x.t||x.u||'')}</span></li>`)
+    : `<li class="bad">✗ <b>${esc(short(x.n))}</b> · ${esc(x.e)}</li>`).join('')+'</ul>';
+  const empties=rep.filter(x=>x.ok&&!x.c).map(x=>short(x.n));
+  $('sheetInfo').classList.toggle('hidden', !(fails.length||empties.length));
+  const link=' <a href="#" id="dtl">Sheet details</a>';
   if(fails.length && !DATA.length){
     const test=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabs[0])}`;
-    setStatus('Could not load data from Google Sheets. <a href="'+test+'" target="_blank" rel="noopener">Test sheet access</a> (data should appear; a Google sign-in page means the sheet is not public). Details: '+esc(fails[0]),true);
+    setStatus('Could not load data from Google Sheets. <a href="'+test+'" target="_blank" rel="noopener">Test sheet access</a> (data should appear; a Google sign-in page means the sheet is not public).'+link,true);
   } else if(fails.length){
-    setStatus(`Loaded ${DATA.length} rows. Skipped: ${fails.join('; ')}`,true);
+    setStatus(`Loaded <b>${fmt(DATA.length)}</b> rows. <b>${fails.length}</b> of ${names.length} sheets could not be read: ${esc(fails.map(short).join(', '))}.`+link,true);
   } else {
-    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${names.length}</b> sheet${names.length>1?'s':''}. Updated ${time}`);
+    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${names.length-empties.length}</b> of ${names.length} sheets. Updated ${time}.`+(empties.length?` <b>No rows found in:</b> ${esc(empties.join(', '))}.`:'')+link, empties.length>0);
   }
 }
 function setStatus(h,err){ const s=$('status'); s.innerHTML=h; s.classList.toggle('err',!!err); }
@@ -473,22 +573,22 @@ function setLive(st,time){
 }
 
 /* ---------- Filters ---------- */
-const FS = {month:'fMonth', iso:'fDate', item:'fItem', cust:'fCust', po:'fPo'};
-const ALL = {month:'All Months', iso:'All Dates', item:'All Products', cust:'All Customers', po:'All PO / WOs'};
+const FS = {year:'fYear', month:'fMonth', iso:'fDate', item:'fItem', cust:'fCust', po:'fPo'};
+const ALL = {year:'All Years', month:'All Months', iso:'All Dates', item:'All Products', cust:'All Customers', po:'All PO / WOs'};
 const monthLabel = k => { const [y,m]=k.split('-'); return MONN[+m-1]+' '+y; };
 
 const dateLabel = iso => { const [y,m,d]=iso.split('-'); return +d+' '+MONN[+m-1]+' '+y; };
 function applyFilters(ex){
-  const f = {month:$('fMonth').value, iso:$('fDate').value, item:$('fItem').value, cust:$('fCust').value, po:$('fPo').value};
+  const f = {year:$('fYear').value, month:$('fMonth').value, iso:$('fDate').value, item:$('fItem').value, cust:$('fCust').value, po:$('fPo').value};
   const ok=(k,d)=>k===ex||!f[k]||d[k]===f[k];
-  return DATA.filter(d=>['month','iso','item','cust','po'].every(k=>ok(k,d)));
+  return DATA.filter(d=>['year','month','iso','item','cust','po'].every(k=>ok(k,d)));
 }
 /* Each dropdown lists only values that exist for the other active filters. */
 function buildFilters(){
   for(let pass=0;pass<2;pass++) for(const k in FS){
     const el=$(FS[k]), cur=el.value;
     let vals=[...new Set(applyFilters(k).map(d=>d[k]).filter(Boolean))].sort();
-    if(k==='iso'||k==='month') vals.reverse();
+    if(k==='iso'||k==='month'||k==='year') vals.reverse();
     el.innerHTML = `<option value="">${ALL[k]}</option>` +
       vals.map(v=>`<option value="${esc(v)}">${esc(k==='month'?monthLabel(v):k==='iso'?dateLabel(v):v)}</option>`).join('');
     el.value = vals.includes(cur)?cur:'';
@@ -576,8 +676,11 @@ function renderCharts(){
     ctx.restore();}};
   mk('c1',{type:'pie',plugins:[pieIn],data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
     options:{...base,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: BDT ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
-  $('c1leg').innerHTML=byItem.map((x,i)=>{const pc=x.sales/totSales*100;
-    return `<li title="${esc(x.k)}: ${money(x.sales)}"><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><b>– ${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')+(byItem.length?'<li class="tot"><span>Total</span><b>= 100%</b></li>':'');
+  const totalSales=sum(VIEW,'sales'), cr=v=>money(v).replace('BDT ','');
+  $('c1leg').innerHTML=(byItem.length?'<li class="hd"><span></span><span>Product</span><span class="r">Sales (BDT)</span><span class="r">Share</span></li>':'')
+    +byItem.map((x,i)=>{const pc=x.sales/totSales*100;
+    return `<li title="${esc(x.k)}: ${money(x.sales)}"><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><span class="vl r">${cr(x.sales)}</span><b class="r">${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')
+    +(byItem.length?`<li class="tot"><span></span><span class="nm">Total</span><span class="vl r">${cr(totalSales)}</span><b class="r">100%</b></li>`:'');
   $('c1tot').textContent='Total Sales '+money(sum(VIEW,'sales'));
   $('c2tot').textContent='Total Supply '+mt(sum(VIEW,'sw'));
   mk('c2',{type:'bar',plugins:[labels('bar')],data:{labels:byItem.map(x=>x.k),datasets:[
@@ -621,10 +724,10 @@ function renderPo(){
   const rows=[...group(VIEW,d=>d.po+'||'+d.cust+'||'+d.item)].map(([k,v])=>({
     po:v[0].po,cust:v[0].cust,item:v[0].item,n:v.length,sw:sum(v,'sw'),rw:sum(v,'rw'),sales:sum(v,'sales'),rates:[...new Set(v.map(d=>d.rate).filter(Boolean))]
   })).sort((a,b)=>b.sales-a.sales);
-  const cols=[{t:'PO No',k:'po'},{t:'Customer',k:'cust'},{t:'Product',k:'item'},{t:'Trucks',k:'n',n:1},
-    {t:'PO Rate (BDT/kg)',k:'rate',n:1,f:r=>!r.rates.length?'-':r.rates.length===1?fmt(r.rates[0],2):fmt(Math.min(...r.rates),2)+' - '+fmt(Math.max(...r.rates),2)},
-    {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},
-    {t:'Sales value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
+  const cols=[{t:'Customer Name',k:'cust'},{t:'Product Name',k:'item'},{t:'Supply Trucks',k:'n',n:1},{t:'PO NO',k:'po'},
+    {t:'PO Rate (BDT/Kg)',k:'rate',n:1,f:r=>!r.rates.length?'-':r.rates.length===1?fmt(r.rates[0],2):fmt(Math.min(...r.rates),2)+' - '+fmt(Math.max(...r.rates),2)},
+    {t:'Supply (Kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},
+    {t:'Sales Value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
   const t=$('poTable'); t.innerHTML=tableHtml(cols,rows);
   t.querySelectorAll('th').forEach(th=>th.style.cursor='default');
 }
@@ -655,8 +758,8 @@ $('refresh').onclick=load;
 $('vDash').onclick=()=>setView('dash');
 $('vTable').onclick=()=>setView('table');
 const onFilter=()=>{buildFilters();render();};
-['fMonth','fDate','fItem','fCust','fPo'].forEach(id=>$(id).onchange=onFilter);
-$('reset').onclick=()=>{ ['fMonth','fDate','fItem','fCust','fPo'].forEach(id=>$(id).value=''); buildFilters(); render(); };
+['fYear','fMonth','fDate','fItem','fCust','fPo'].forEach(id=>$(id).onchange=onFilter);
+$('reset').onclick=()=>{ ['fYear','fMonth','fDate','fItem','fCust','fPo'].forEach(id=>$(id).value=''); buildFilters(); render(); };
 $('csv').onclick=()=>{
   const head=['Date','Product','Customer','PO No','Truck No','Supply (kg)','Sales value'];
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
@@ -671,6 +774,7 @@ document.querySelectorAll('#gran button').forEach(b=>{
   b.onclick=()=>{ GRAN=b.dataset.g; store.set('gran',GRAN);
     document.querySelectorAll('#gran button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.g===GRAN)); renderCharts(); };
 });
+$('status').onclick=e=>{ if(e.target.closest('#dtl')){ e.preventDefault(); $('sheetInfo').classList.toggle('hidden'); } };
 /* ---------- Start ---------- */
 (async function init(){
   if(APPS_SCRIPT_URL){
