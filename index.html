@@ -478,8 +478,8 @@ function renderKpis(){
       <div><div class="l">${ic('scale')}Total Supply Weight</div><div class="v">${mt(sw)}</div><div class="s">${fmt(sw,0)} kg</div></div>
       <div><div class="l">${ic('cash')}Total Sales Value</div><div class="v">${money(sales)}</div><div class="s">BDT ${fmt(sales)}</div></div>
     </div></div>
-    <div class="kpi"><div class="l">${ic('bars')}Product-wise Supply Weight</div>${list('sw',mt)}</div>
-    <div class="kpi"><div class="l">${ic('pie')}Product-wise Sales Value</div>${list('sales',money)}</div>
+    <div class="kpi"><div class="l">${ic('bars')}Product-Wise Supply Weight (MT)</div>${list('sw',x=>fmt(x/1000,2))}</div>
+    <div class="kpi"><div class="l">${ic('pie')}Product-Wise Sales Value (BDT)</div>${list('sales',x=>money(x).replace('BDT ',''))}</div>
     <div class="kpi"><div class="l">${ic('truck')}Total Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">Against ${nPo} PO Number${nPo===1?'':'s'}</div></div>`;
 }
 const PAL = ['#33552b','#658b2e','#ccd065','#8aa63a','#a9b83a','#4d7a3a','#9aa58f','#b5432f'];
