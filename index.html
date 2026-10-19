@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Agrigate Network Ltd. | Supply Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,6 +167,55 @@ button.link:hover{background:color-mix(in srgb,var(--green) 12%,var(--surface))}
 .pieleg b{grid-column:auto;grid-row:auto;text-align:left;font-weight:600}
 .pieleg li.tot{display:flex;grid-column:1/-1;gap:10px;border-top:1px solid var(--line);padding-top:12px;font-weight:700}
 @media (max-width:700px){.piewrap{grid-template-columns:1fr}}
+/* ===== Mobile / tablet responsiveness ===== */
+html{-webkit-text-size-adjust:100%}
+.wrap{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));overflow-x:clip}
+.grid>*,.piewrap>*,.kpis>*{min-width:0}
+.scroll{-webkit-overflow-scrolling:touch}
+.pieleg .nm{overflow-wrap:anywhere}
+@media (max-width:1000px){
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi:first-child,.kpi:last-child{grid-column:1/-1}
+  .kpi:nth-child(3){border-right:0}
+  .kpi:last-child{border-bottom:0}
+  .grid{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+  .kpis{grid-template-columns:1fr}
+  .kpi{border-right:0;border-bottom:1px solid var(--line)}
+  .kpi:last-child{border-bottom:0}
+  .kpi .v{font-size:24px}
+  .piewrap{grid-template-columns:1fr;gap:16px}
+}
+@media (max-width:560px){
+  :root{--h:44px}
+  .wrap{padding-top:12px;padding-bottom:32px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  header.top{padding:14px 16px;gap:14px;border-radius:12px}
+  .brand{gap:12px}
+  .brand img{height:56px}
+  h1{font-size:20px}
+  header.top .sub{font-size:13px;margin-top:4px}
+  .controls{width:100%}
+  #refresh{flex:1}
+  .status{font-size:12.5px;padding:10px 2px;min-height:0}
+  .live{margin-left:8px}
+  select,input,button{font-size:16px}
+  .filterbar{gap:10px}
+  .filterbar select{flex:1 1 calc(50% - 5px);max-width:none;min-width:0}
+  button.link{flex:1 1 100%}
+  .viewrow{gap:8px}
+  .tabs{width:100%}
+  .tabs button{flex:1;height:40px}
+  .viewrow .sub{width:100%;text-align:right;font-size:12.5px}
+  .kpi{padding:16px}
+  .card{padding:16px 14px}
+  .card h2{flex-wrap:wrap;font-size:12px;letter-spacing:.06em}
+  .chart{height:250px}
+  .piewrap .chart{height:220px}
+  .tbar{padding:14px}
+  th,td{padding:9px 12px;font-size:13px}
+  .scroll{max-height:68vh}
+}
 </style>
 </head>
 <body>
@@ -447,7 +496,7 @@ function renderCharts(){
   const cs=getComputedStyle(document.documentElement);
   Chart.defaults.color=cs.getPropertyValue('--muted').trim();
   Chart.defaults.borderColor=cs.getPropertyValue('--line').trim();
-  Chart.defaults.font.family=cs.getPropertyValue('--font'); Chart.defaults.font.size=13;
+  Chart.defaults.font.family=cs.getPropertyValue('--font'); Chart.defaults.font.size=window.innerWidth<560?11:13;
   const dark=matchMedia('(prefers-color-scheme:dark)').matches; const green=dark?'#8fbf4f':'#33552b', gold=dark?'#ccd065':'#a9b83a';
   const base={responsive:true,maintainAspectRatio:false};
 
@@ -492,7 +541,7 @@ function renderCharts(){
   const byCust=[...group(VIEW,d=>d.cust)].map(([k,v])=>({k,s:sum(v,'sales')})).sort((a,b)=>b.s-a.s).slice(0,8);
   mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:byCust.map((x,i)=>CUST_PAL[Math.min(i,CUST_PAL.length-1)])}]},
     options:{...base,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+money(c.raw)}}},
-      scales:{x:{ticks:{callback:v=>v>=1e7?(v/1e7)+' Cr':v>=1e5?(v/1e5)+' L':v}}}}});
+      scales:{y:{ticks:{callback(v){const l=String(this.getLabelForValue(v)),m=window.innerWidth<560?14:26;return l.length>m?l.slice(0,m-1)+'…':l;}}},x:{ticks:{maxTicksLimit:6,callback:v=>v>=1e7?(v/1e7)+' Cr':v>=1e5?(v/1e5)+' L':v}}}}});
 }
 function tableHtml(cols,rows,foot){
   if(!rows.length) return `<tbody><tr><td class="empty" colspan="${cols.length}">No deliveries match these filters. Try Reset filters.</td></tr></tbody>`;
@@ -561,6 +610,8 @@ $('csv').onclick=()=>{
   setView(store.get('view','dash'));
   load();
   setInterval(()=>{ if(!document.hidden) load(); },300000);
+  let lastW=innerWidth,rt;
+  addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(innerWidth!==lastW){lastW=innerWidth;if(DATA.length)renderCharts();}},300);});
 })();
 </script>
 </body>
