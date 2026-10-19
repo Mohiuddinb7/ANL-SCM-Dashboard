@@ -288,7 +288,7 @@ const DEFAULT_TABS = [
 ];
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
-const fmt = (n,d=0) => Number(n).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmt = (n,d=0) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const money = n => n>=1e7 ? 'BDT '+fmt(n/1e7,2)+' Cr' : n>=1e5 ? 'BDT '+fmt(n/1e5,2)+' Lakh' : 'BDT '+fmt(n);
 const mt = kg => fmt(kg/1000,2)+' MT';
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
