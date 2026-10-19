@@ -219,6 +219,10 @@ html{-webkit-text-size-adjust:100%}
 .period{display:inline-block;margin-top:10px;padding:5px 14px;border-radius:999px;font-size:13px;color:#33552b;background:#f1f4d3;border:1px solid #d9de93}
 .period b{font-weight:700}
 .period:empty{display:none}
+.gran{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:9px;background:var(--surface);text-transform:none;letter-spacing:0}
+.gran button{height:28px;padding:0 11px;border:0;border-radius:7px;background:transparent;font-size:12.5px;font-weight:600;color:var(--muted)}
+.gran button[aria-pressed=true]{background:var(--band);color:#fff}
+@media (max-width:560px){.gran button{height:32px;padding:0 10px}}
 </style>
 </head>
 <body>
@@ -259,7 +263,7 @@ html{-webkit-text-size-adjust:100%}
   <section id="dash" class="grid">
     <div class="panel card"><h2>Product-wise sales value (%)<span class="ctot" id="c1tot"></span></h2><div class="piewrap"><div class="chart"><canvas id="c1"></canvas></div><ul class="pieleg" id="c1leg"></ul></div></div>
     <div class="panel card"><h2>Product-wise supply weight (MT)<span class="ctot" id="c2tot"></span></h2><div class="chart"><canvas id="c2"></canvas></div></div>
-    <div class="panel card full"><h2>Daily supply weight (MT)</h2><div class="chart"><canvas id="c3"></canvas></div></div>
+    <div class="panel card full"><h2><span id="c3title">Daily Supply Weight (MT)</span><span class="gran" id="gran" role="group" aria-label="Chart grouping"><button data-g="auto" aria-pressed="true">Auto</button><button data-g="day" aria-pressed="false">Daily</button><button data-g="week" aria-pressed="false">Weekly</button><button data-g="month" aria-pressed="false">Monthly</button></span></h2><div class="chart"><canvas id="c3"></canvas></div></div>
     <div class="panel card full"><h2>Top customers by sales value</h2><div class="chart"><canvas id="c4"></canvas></div></div>
     <div class="panel full">
       <div class="tbar"><h2>PO-wise summary</h2><span class="sub">Grouped by PO, customer and product</span></div>
@@ -453,6 +457,7 @@ function buildFilters(){
 
 /* ---------- Rendering ---------- */
 let charts={};
+let GRAN=store.get('gran','auto');
 function render(){
   VIEW = applyFilters();
   const days=VIEW.map(d=>d.iso).filter(Boolean).sort();
@@ -537,13 +542,27 @@ function renderCharts(){
       {label:'Supply (MT)',data:byItem.map(x=>+x.sw.toFixed(2)),backgroundColor:colors,maxBarThickness:90}]},
     options:{...base,layout:{padding:{top:22}},plugins:{legend:{display:false}}}});
 
-  const byDay=[...group(VIEW.filter(d=>d.iso),d=>d.iso)].sort((a,b)=>a[0]<b[0]?-1:1);
-  const multiYear=new Set(DATA.map(x=>x.iso.slice(0,4)).filter(Boolean)).size>1;
-  const lab=iso=>{const [y,m,d]=iso.split('-'); return +d+' '+MONN[+m-1]+(multiYear?" '"+y.slice(2):'');};
-  const dayVals=byDay.map(x=>sum(x[1],'sw')/1000), peak=dayVals.indexOf(Math.max(...dayVals));
-  mk('c3',{type:'bar',data:{labels:byDay.map(x=>lab(x[0])),datasets:[
-      {label:'Supply (MT)',data:byDay.map(x=>+(sum(x[1],'sw')/1000).toFixed(2)),backgroundColor:byDay.map((x,i)=>i===peak?'#2B5C8F':'#5B8DEF')}]},
-    options:{...base,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxRotation:60,autoSkip:true}},y:{grid:{color:dark?'#2a3830':'#CBD5E1'}}}}});
+  const dated=VIEW.filter(d=>d.iso).sort((a,b)=>a.iso<b.iso?-1:1);
+  const spanDays=dated.length?(Date.parse(dated[dated.length-1].iso)-Date.parse(dated[0].iso))/864e5+1:0;
+  const eff=GRAN!=='auto'?GRAN:spanDays<=45?'day':spanDays<=150?'week':'month';
+  const multiYear=new Set(dated.map(x=>x.iso.slice(0,4))).size>1, yy=k=>multiYear?" '"+k.slice(2,4):'';
+  const keyOf=d=>eff==='day'?d.iso:eff==='month'?d.iso.slice(0,7):d.iso.slice(0,7)+'-w'+Math.min(3,Math.floor((+d.iso.slice(8)-1)/7));
+  const labelOf=k=>{
+    const [y,m,dd]=k.split('-').map(Number);
+    if(eff==='day') return dd+' '+MONN[m-1]+yy(k);
+    if(eff==='month') return MONN[m-1]+' '+y;
+    const w=+k.slice(-1), dim=new Date(y,m,0).getDate();
+    return (w*7+1)+'–'+(w===3?dim:w*7+7)+' '+MONN[m-1]+yy(k);};
+  const groups=[...group(dated,keyOf)].sort((a,b)=>a[0]<b[0]?-1:1);
+  $('c3title').textContent={day:'Daily',week:'Weekly',month:'Monthly'}[eff]+' Supply Weight (MT)';
+  const vals=groups.map(g=>sum(g[1],'sw')/1000), peak=vals.indexOf(Math.max(...vals)), n=groups.length;
+  const narrow=innerWidth<560, rot=n<=(narrow?5:8)?0:n<=(narrow?12:24)?45:90;
+  mk('c3',{type:'bar',plugins:n<=12?[labels('bar')]:[],data:{labels:groups.map(g=>labelOf(g[0])),datasets:[
+      {label:'Supply (MT)',data:vals.map(v=>+v.toFixed(2)),backgroundColor:vals.map((v,i)=>i===peak?'#2B5C8F':'#5B8DEF'),maxBarThickness:72,borderRadius:3}]},
+    options:{...base,layout:{padding:{top:n<=12?22:6}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' Supply: '+fmt(c.raw,2)+' MT',afterLabel:c=>' '+groups[c.dataIndex][1].length+' deliveries'}}},
+      scales:{x:{grid:{display:false},ticks:{minRotation:rot,maxRotation:rot,autoSkip:true,maxTicksLimit:rot===90?40:24,font:{size:n>24?10:narrow?10.5:12}}},
+              y:{grid:{color:dark?'#2a3830':'#CBD5E1'}}}}});
 
   const byCust=[...group(VIEW,d=>d.cust)].map(([k,v])=>({k,s:sum(v,'sales')})).sort((a,b)=>b.s-a.s).slice(0,8);
   mk('c4',{type:'bar',data:{labels:byCust.map(x=>x.k),datasets:[{label:'Sales value',data:byCust.map(x=>x.s),backgroundColor:byCust.map((x,i)=>CUST_PAL[Math.min(i,CUST_PAL.length-1)])}]},
@@ -605,6 +624,11 @@ $('csv').onclick=()=>{
   a.download='supply_data.csv'; a.click();
 };
 
+document.querySelectorAll('#gran button').forEach(b=>{
+  b.setAttribute('aria-pressed',b.dataset.g===GRAN);
+  b.onclick=()=>{ GRAN=b.dataset.g; store.set('gran',GRAN);
+    document.querySelectorAll('#gran button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.g===GRAN)); renderCharts(); };
+});
 /* ---------- Start ---------- */
 (async function init(){
   if(APPS_SCRIPT_URL){
