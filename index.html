@@ -565,6 +565,29 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 .pm th,.pm td{padding:10px 9px;white-space:nowrap;font-size:13px}
 .pm th.g{white-space:normal;min-width:110px;line-height:1.25}
 .pm td.muted{color:var(--muted)}
+
+/* P&L: three KPI cards spread evenly */
+#plK.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+#plK .kpi:last-child{border-right:0}
+@media (max-width:700px){#plK.kpis{grid-template-columns:1fr}#plK .kpi{border-right:0;border-bottom:1px solid var(--line)}}
+/* P&L table: roomy columns, nothing clipped, labels stay pinned while scrolling */
+.pl{table-layout:auto;width:100%}
+.pl th,.pl td{padding:14px 20px;font-size:14px;white-space:nowrap;overflow:visible}
+.pl th.g{min-width:130px;text-align:center}
+.pl td.n{text-align:right;min-width:130px}
+.pl th.l,.pl td.l{min-width:250px;width:auto;white-space:nowrap}
+.pl td.ind{padding-left:36px}
+.pl td.tc,.pl thead th:last-child{border-left:2px solid var(--line)}
+.pl td.tc{background:color-mix(in srgb,var(--soft) 60%,transparent)}
+@media (max-width:900px){.pl th,.pl td{padding:11px 12px;font-size:12.5px}.pl th.l,.pl td.l{min-width:170px}.pl th.g,.pl td.n{min-width:104px}.pl td.ind{padding-left:22px}}
+
+/* P&L heading: smaller, tidy on every screen */
+.pltb{padding:14px 16px}
+.pltb .pltt{padding:0 120px}
+.pltb .pltt h2{font-size:clamp(11px,1.05vw,14px);letter-spacing:.06em;line-height:1.35;margin:0 0 3px}
+.pltb .plr{font-size:clamp(12px,1vw,13.5px);margin-bottom:2px}
+.pltb .plp{font-size:clamp(11px,.9vw,12.5px)}
+@media (max-width:700px){.pltb .pltt{padding:0}.pltb{padding:12px}.pltb .pltt h2{font-size:11.5px;letter-spacing:.04em}}
 </style>
 </head>
 <body>
@@ -701,8 +724,8 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
     <div class="grid">
       <div class="panel card"><h2>Monthly Sales vs COGS (BDT)</h2><div class="chart"><canvas id="plC2"></canvas></div></div>
       <div class="panel card"><h2>Monthly Gross Profit &amp; Margin</h2><div class="chart"><canvas id="plC3"></canvas></div></div>
-      <div class="panel card full"><h2>Revenue vs Net Profit (BDT)</h2><div class="chart"><canvas id="plC"></canvas></div></div>
-      <div class="panel full"><div class="tbar pltb"><div class="pltt"><h2 id="plT">Statement of Profit or Loss and Other Comprehensive Income</h2><div class="plr" id="plR">Raw Material (RM) Trading</div><div class="plp" id="plP"></div></div><div class="dl" role="group" aria-label="Download"><button id="plPdf" class="primary" title="Download as PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>PDF</button></div></div><div class="scroll"><table id="plTb" class="pl"></table></div></div>
+      <div class="panel card full"><h2>Revenue vs Gross Profit (BDT)</h2><div class="chart"><canvas id="plC"></canvas></div></div>
+      <div class="panel full"><div class="tbar pltb"><div class="pltt"><h2 id="plT">Monthly Gross Profit & Trading Performance Statement</h2><div class="plr" id="plR">Raw Material (RM) Trading</div><div class="plp" id="plP"></div></div><div class="dl" role="group" aria-label="Download"><button id="plPdf" class="primary" title="Download as PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>PDF</button></div></div><div class="scroll"><table id="plTb" class="pl"></table></div></div>
     </div>
   </div>
 </div>
@@ -1469,10 +1492,12 @@ async function loadPL(){
       o.subs=[...subMap.values()].map(s=>({s,q:subVal(s,'q',l),a:subVal(s,'a',l)}));
       M[l]=o;
     });
+    const live=months.filter(l=>(M[l].rev||0)!==0||(M[l].gp||0)!==0);
+    if(live.length) months.splice(0,months.length,...live);
     PLD={months,M,subs:[...subMap.values()],errs,tabs:tabs.length};
     const opt=months.map(l=>`<option value="${l}">${l}</option>`).join('');
     $('plFrom').innerHTML=opt; $('plTo').innerHTML=opt;
-    $('plFrom').value=months[0]; $('plTo').value=months[months.length-1];
+    $('plFrom').value=months.includes('Mar-26')?'Mar-26':months[0]; $('plTo').value=months[months.length-1];
     $('plF').classList.remove('hidden');
     renderPL();
     msg.classList.add('hidden'); LIVE.PL=nowT(); if(CURPG==='PL') setLive('ok',LIVE.PL);
@@ -1485,14 +1510,14 @@ function renderPL(){
   const ms=D.months.slice(a,b+1), g=(l,k)=>D.M[l][k], S=(k,f)=>ms.reduce((s,l)=>s+(f==='q'?(g(l,k+'_q')||0):(g(l,k)||0)),0);
   const pc=(x,y)=>y?x/y*100:null;
   hdrSync();
-  const rev=S('rev','a'),gp=S('gp','a'),np=S('np','a'),opx=S('opex','a'),cogs=S('cogs','a'),opr=S('op','a');
-  $('plK').innerHTML=kp(ic('cash')+'Total Sales',money(rev),f2(S('rev','q'))+' MT · '+ms.length+' month'+(ms.length>1?'s':''))
-    +kp(ic('scale')+'Cost of Goods Sold',money(Math.abs(cogs)),f2(pc(Math.abs(cogs),rev))+'% of sales')
-    +kp(ic('bars')+'Gross Profit',money(gp),'Margin '+f2(pc(gp,rev))+'%')
-    +kp(ic('pie')+'Net Profit',money(np),'Net margin '+f2(pc(np,rev))+'% · Opex '+money(opx));
+  const rev=S('rev','a'),gp=S('gp','a'),cogs=S('cogs','a');
+  const vq=S('rev','q');
+  $('plK').innerHTML=kp(ic('cash')+'Total Sales Value',money(rev),'BDT '+fmt(rev)+'<br>against '+f2(vq)+' MT Supply')
+    +kp(ic('scale')+'Cost of Goods Sold',money(Math.abs(cogs)),'BDT '+fmt(Math.abs(cogs),0)+'<br>'+f2(pc(Math.abs(cogs),rev))+'% of sales')
+    +kp(ic('bars')+'Gross Profit',money(gp),'BDT '+fmt(gp,0)+'<br>Margin '+f2(pc(gp,rev))+'%');
   const FMN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const plFull=l=>{ const m=/^([A-Za-z]{3})-(\d{2})$/.exec(l); return m?FMN[MON[m[1].toLowerCase()]]+' 20'+m[2]:l; };
-  $('plT').textContent='Statement of Profit or Loss and Other Comprehensive Income';
+  $('plT').textContent='Monthly Gross Profit & Trading Performance Statement';
   $('plP').textContent='For the Period from '+plFull(ms[0])+' to '+plFull(ms[ms.length-1]);
   /* growth is recomputed month on month across the merged timeline */
   const growth=l=>{ const i=D.months.indexOf(l); if(i<1) return null; const p=g(D.months[i-1],'rev'), c=g(l,'rev'); return p?(c-p)/p*100:null; };
@@ -1504,10 +1529,7 @@ function renderPL(){
   D.subs.filter(s=>s.sec==='cost').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
   R('Cost of Sales','cogs',{tot:1});
   R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
-  R('Operating Expenses','opex'); R('Operating Profit','op');
-  R('Profit Before Tax','pbt'); R('Income Tax','tax');
-  R('Net Profit','np',{bold:1}); R('Net Margin %','np',{pct:'rev',it:1});
-  const cell=v=>v==null?'':(v<0?'<span class="bad">'+f2(v)+'</span>':f2(v));
+  const cell=v=>v==null?'':(v<0?'<span class="bad">'+fmt(v,0)+'</span>':fmt(v,0));
   const cv=(x,l)=>{ if(x.sub){ const e=g(l,'subs').find(y=>y.s===x.sub); return {q:e&&e.q,a:e&&e.a}; }
     if(x.pct) return {q:null,a:pc(g(l,x.k)||0,g(l,x.pct))};
     return {q:g(l,x.k+'_q'),a:g(l,x.k)}; };
@@ -1520,7 +1542,7 @@ function renderPL(){
     const cls=(x.bold?'hd ':'')+(x.tot?'tot ':'')+(x.it?'pc ':'');
     return `<tr class="${cls}"><td class="l${x.ind?' ind':''}">${esc(x.lab)}</td>${ms.map(l=>`<td class="n">${show(x,cv(x,l))}</td>`).join('')}<td class="n tc">${show(x,tv(x))}</td></tr>`;
   }).join('');
-  const ptxt=(x,v)=>x.vol?f2(v.q):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':f2(v.a)));
+  const ptxt=(x,v)=>x.vol?f2(v.q):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,0)));
   PLX={title:$('plT').textContent,sub:'Raw Material (RM) Trading',period:$('plP').textContent,head:['Particulars (BDT)',...ms,'Total'],
     rows:vis.map(x=>({x,cells:[x.lab,...ms.map(l=>ptxt(x,cv(x,l))),ptxt(x,tv(x))]}))};
   $('plTb').innerHTML=hd+'<tbody>'+body+'</tbody>';
@@ -1540,9 +1562,8 @@ function renderPL(){
     options:{...base,scales:{x:xs,y:{title:axT('Gross profit (BDT million)'),ticks:{callback:lblM}},y1:{position:'right',title:axT('Gross margin (%)'),grid:{drawOnChartArea:false},ticks:{callback:v=>fmt(v,0)+'%'}}},plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.datasetIndex?fmt(c.parsed.y,2)+'%':money(c.parsed.y))}}}}});
   mk('plC',{data:{labels:ms,datasets:[
     {type:'bar',label:'Revenue',data:ms.map(l=>g(l,'rev')||0),backgroundColor:colx,yAxisID:'y'},
-    {type:'line',label:'Gross Profit',data:ms.map(l=>g(l,'gp')||0),borderColor:'#ccd065',backgroundColor:'#ccd065',yAxisID:'y1',tension:.3},
-    {type:'line',label:'Net Profit',data:ms.map(l=>g(l,'np')||0),borderColor:'#b5432f',backgroundColor:'#b5432f',yAxisID:'y1',tension:.3}]},
-    options:{...base,scales:{x:xs,y:{title:axT('Revenue (BDT million)'),ticks:{callback:lblM}},y1:{position:'right',title:axT('Profit (BDT million)'),grid:{drawOnChartArea:false},ticks:{callback:lblM}}},plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+money(c.parsed.y)}}}}});
+    {type:'line',label:'Gross Profit',data:ms.map(l=>g(l,'gp')||0),borderColor:'#8a9420',backgroundColor:'#ccd065',pointRadius:4,yAxisID:'y1',tension:.3}]},
+    options:{...base,scales:{x:xs,y:{title:axT('Revenue (BDT million)'),ticks:{callback:lblM}},y1:{position:'right',title:axT('Gross profit (BDT million)'),grid:{drawOnChartArea:false},ticks:{callback:lblM}}},plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+money(c.parsed.y)}}}}});
 }
 $('plFrom').onchange=renderPL; $('plTo').onchange=renderPL;
 $('plPdf').onclick=()=>{
