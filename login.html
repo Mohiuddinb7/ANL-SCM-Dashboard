@@ -4,70 +4,61 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#264628">
 <title>Sign in | Agrigate Network Ltd. SCM Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#edf0ec; --surface:#ffffff; --ink:#16231c; --muted:#65746b; --line:#dbe2dc; --soft:#f4f7f4;
-  --green:#658b2e; --gold:#ccd065; --red:#b5432f; --band:#33552b; --btn:#658b2e; --btnink:#fff; --focus:rgba(101,139,46,.28);
-  --font:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --bg:#ffffff; --surface:#fcfcfc; --ink:#16231c; --muted:#5f6b64; --line:#dcdfdc; --field:#f3f3f3;
+  --green:#658b2e; --gold:#ccd065; --red:#b5432f; --panel:#264628; --btn:#658b2e; --btnink:#fff; --focus:rgba(101,139,46,.28);
+  --font:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#0e1612; --surface:#16211b; --ink:#e7eee9; --muted:#93a399; --line:#2a3830; --soft:#1b2821; --green:#8fbf4f; --red:#e57a66; --btn:#8fbf4f; --btnink:#0e1612; --focus:rgba(143,191,79,.30);}
+  :root{--bg:#0e1612; --surface:#121b16; --ink:#e7eee9; --muted:#9aaa9f; --line:#2a3830; --field:#1b2821; --green:#8fbf4f; --red:#e57a66; --btn:#8fbf4f; --btnink:#0e1612; --focus:rgba(143,191,79,.30);}
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-.shell{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.shell{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 
-/* ---- brand panel ---- */
-.hero{position:relative;overflow:hidden;color:#fff;padding:48px 56px;display:flex;flex-direction:column;justify-content:space-between;
-  background:radial-gradient(900px 500px at 12% -10%,rgba(204,208,101,.22),transparent 60%),linear-gradient(160deg,#3b6431 0%,#33552b 45%,#223a1d 100%)}
-.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(204,208,101,.18);pointer-events:none}
-.hero::before{width:520px;height:520px;right:-190px;bottom:-200px}
-.hero::after{width:320px;height:320px;right:-90px;bottom:-100px;border-color:rgba(204,208,101,.28)}
-.brandblk{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;width:max-content}
-.bn{font-size:12.5px;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.88);padding-left:4px}
-.logo{display:inline-flex;background:#fff;border-radius:18px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.22);width:max-content}
-.logo img{height:74px;width:auto;display:block}
-.hero h1{margin:0 0 14px;font-size:clamp(28px,3vw,40px);line-height:1.12;font-weight:800;letter-spacing:-.025em;max-width:18ch}
-.hero h1 em{font-style:normal;color:var(--gold)}
-.hero p{margin:0;color:rgba(255,255,255,.78);max-width:50ch}
-.feats{list-style:none;margin:30px 0 0;padding:0;display:grid;gap:12px;position:relative;z-index:1}
-.feats li{display:flex;align-items:center;gap:12px;font-weight:600;color:rgba(255,255,255,.92)}
-.feats i{flex:none;width:32px;height:32px;border-radius:10px;background:rgba(204,208,101,.16);border:1px solid rgba(204,208,101,.35);display:grid;place-items:center;color:var(--gold)}
-.feats svg{width:16px;height:16px}
-.hero small{color:rgba(255,255,255,.55);position:relative;z-index:1}
-.hero .mid{position:relative;z-index:1}
+/* ---- left brand panel ---- */
+.hero{background:var(--panel);color:#fff;padding:clamp(28px,4vw,52px);display:flex;flex-direction:column}
+.logo{width:92px;height:92px;background:#fff;border-radius:18px;display:grid;place-items:center}
+.logo img{width:74px;height:auto;display:block}
+.mid{margin-top:34px}
+.hero h1{margin:0 0 14px;font-size:clamp(22px,2vw,28px);line-height:1.25;font-weight:600}
+.hero .desc{margin:0;color:rgba(255,255,255,.85);font-size:clamp(15px,1.25vw,18px)}
+.hero hr{border:0;border-top:1px solid rgba(255,255,255,.2);margin:26px 0}
+.feats{list-style:none;margin:0;padding:0;display:grid;gap:20px}
+.feats li{display:flex;align-items:center;gap:14px;font-weight:600;font-size:clamp(15px,1.3vw,19px)}
+.feats svg{flex:none;width:22px;height:22px;color:var(--gold)}
+.hero small{margin-top:auto;padding-top:40px;color:rgba(255,255,255,.7);font-size:14px}
+.mobtitle{display:none}
 
-/* ---- form panel ---- */
-.pane{display:flex;align-items:center;justify-content:center;padding:32px 24px}
-.card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:36px 34px;box-shadow:0 18px 50px rgba(20,40,25,.10)}
-.card h2{margin:0 0 6px;font-size:26px;font-weight:800;letter-spacing:-.02em;color:#33552b}
-@media (prefers-color-scheme:dark){.card h2{color:#cfe6a8}}
-.card .lead{margin:0 0 26px;color:var(--muted)}
-label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 7px}
-.field{margin-bottom:18px}
+/* ---- right form panel ---- */
+.pane{background:var(--surface);display:flex;align-items:center;justify-content:center;padding:clamp(24px,4vw,52px)}
+.card{width:100%;max-width:560px}
+.card h2{margin:0 0 10px;font-size:26px;font-weight:600;color:var(--ink)}
+.card .lead{margin:0 0 26px;color:var(--muted);font-size:18px}
+label{display:block;font-size:15px;font-weight:600;color:var(--muted);margin:0 0 8px}
+.field{margin-bottom:20px}
 .inp{position:relative}
-.inp input{width:100%;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--ink);font:inherit;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
-.inp input::placeholder{color:var(--muted);opacity:.7}
+.inp input{width:100%;height:58px;padding:0 16px;border:1px solid var(--line);border-radius:12px;background:var(--field);color:var(--ink);font:inherit;font-size:17px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.inp input::placeholder{color:var(--muted);opacity:.85}
 .inp input:focus{border-color:var(--green);box-shadow:0 0 0 4px var(--focus);background:var(--surface)}
-.inp.pw input{padding-right:50px}
-.eye{position:absolute;right:6px;top:6px;width:36px;height:36px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.inp.pw input{padding-right:52px}
+.eye{position:absolute;right:7px;top:8px;width:38px;height:38px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
 .eye:hover{background:var(--line);color:var(--ink)}
 .eye:focus-visible{outline:2px solid var(--green)}
-.eye svg{width:19px;height:19px}
-.hint{display:none;margin-top:6px;font-size:12.5px;color:#a9741d;font-weight:600}
+.eye svg{width:20px;height:20px}
+.hint{display:none;margin-top:6px;font-size:13px;color:#a9741d;font-weight:600}
 .hint.on{display:block}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 22px;flex-wrap:wrap}
-.chk{display:flex;align-items:center;gap:9px;margin:0;font-weight:500;color:var(--ink);cursor:pointer;user-select:none}
-.chk input{width:17px;height:17px;accent-color:var(--green);margin:0}
-.lnk{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--green);cursor:pointer}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 22px;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:10px;margin:0;font-size:16.5px;font-weight:500;color:var(--ink);cursor:pointer;user-select:none}
+.chk input{width:18px;height:18px;accent-color:var(--green);margin:0}
+.lnk{background:none;border:0;padding:0;font:inherit;font-size:17px;font-weight:600;color:var(--green);cursor:pointer}
 .lnk:hover{text-decoration:underline}
 .lnk:disabled{opacity:.6;cursor:default;text-decoration:none}
-.btn{width:100%;height:50px;border:0;border-radius:12px;background:var(--btn);color:var(--btnink);font:inherit;font-size:15.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s,transform .05s}
+.btn{width:100%;height:58px;border:0;border-radius:12px;background:var(--btn);color:var(--btnink);font:inherit;font-size:19px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s,transform .05s}
 .btn:hover{filter:brightness(1.07)}
 .btn:active{transform:translateY(1px)}
 .btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -75,60 +66,117 @@ label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0
 .spin{width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:r .7s linear infinite;display:none}
 .btn.load .spin{display:block}
 @keyframes r{to{transform:rotate(360deg)}}
-.msg{display:none;margin:0 0 18px;padding:11px 14px;border-radius:12px;font-size:14px;font-weight:600;line-height:1.4}
+.msg{display:none;margin:0 0 18px;padding:11px 14px;border-radius:12px;font-size:14.5px;font-weight:600;line-height:1.4}
 .msg.err{display:block;color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent);border:1px solid color-mix(in srgb,var(--red) 35%,transparent)}
 .msg.ok{display:block;color:#33552b;background:color-mix(in srgb,var(--green) 14%,transparent);border:1px solid color-mix(in srgb,var(--green) 40%,transparent)}
 @media (prefers-color-scheme:dark){.msg.ok{color:#cfe6a8}}
-.foot{margin:22px 0 0;text-align:center;color:var(--muted);font-size:13px}
+.foot{margin:18px 0 0;text-align:center;color:var(--muted);font-size:15.5px}
 
 @media (max-width:900px){
   .shell{grid-template-columns:1fr}
-  .hero{padding:22px 22px 26px;gap:18px}
-  .hero .mid,.hero small,.bn{display:none}
-  .hero .logo img{height:52px}
-  .hero{flex-direction:row;align-items:center;justify-content:flex-start;gap:16px}
-  .hero::before,.hero::after{display:none}
-  .mobtitle{display:block}
-  .pane{align-items:flex-start;padding:24px 16px 40px}
-  .card{padding:28px 22px;margin-top:-8px}
+  .hero{padding:22px;flex-direction:row;align-items:center;gap:16px}
+  .hero .logo{width:60px;height:60px;border-radius:14px}
+  .hero .logo img{width:46px}
+  .hero .mid,.hero small{display:none}
+  .mobtitle{display:block;font-weight:700;font-size:19px;line-height:1.2}
+  .mobtitle small{display:block;font-weight:500;color:rgba(255,255,255,.72);font-size:13px;margin-top:2px;padding:0}
+  .pane{align-items:flex-start;padding:28px 20px 44px}
 }
-.mobtitle{display:none;font-weight:800;font-size:19px;line-height:1.2;letter-spacing:-.01em}
-.mobtitle small{display:block;font-weight:500;color:rgba(255,255,255,.7);font-size:13px;margin-top:2px}
+
+/* ---- mobile & touch ---- */
+html{-webkit-text-size-adjust:100%}
+body{overflow-x:hidden}
+.mfoot{display:none;margin:22px 0 0;text-align:center;color:var(--muted);font-size:13px}
+.btn,.lnk,.chk,.eye{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px var(--field) inset;-webkit-text-fill-color:var(--ink)}
+@media (max-width:900px){
+  .shell{min-height:100dvh;grid-template-rows:auto 1fr}
+  .hero{padding:max(18px,env(safe-area-inset-top)) 20px 18px}
+  .pane{padding:26px 20px calc(32px + env(safe-area-inset-bottom))}
+  .card{max-width:520px}
+  .mfoot{display:block}
+}
+@media (max-width:480px){
+  .hero{gap:14px}
+  .hero .logo{width:56px;height:56px;border-radius:13px}
+  .hero .logo img{width:42px}
+  .mobtitle{font-size:18px}
+  .card h2{font-size:24px;margin-bottom:6px}
+  .card .lead{font-size:16px;margin-bottom:22px}
+  .inp input{height:54px;font-size:16px}   /* 16px stops iOS from zooming on focus */
+  .btn{height:54px;font-size:17px}
+  .field{margin-bottom:16px}
+  .row{margin:2px 0 20px}
+  .chk{font-size:15.5px;min-height:44px}
+  .lnk{font-size:15.5px;min-height:44px}
+  .chk input{width:20px;height:20px}
+  .foot{font-size:14px}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .hero{padding-top:12px;padding-bottom:12px}
+  .pane{align-items:flex-start}
+}
+
+/* Phone/tablet: show the same text as the desktop design, stacked (brand panel on top, form below) */
+@media (max-width:900px){
+  .hero{flex-direction:column;align-items:flex-start;gap:0;padding:max(26px,env(safe-area-inset-top)) 22px 26px}
+  .hero .logo{width:80px;height:80px;border-radius:16px}
+  .hero .logo img{width:60px}
+  .hero .mid{display:block;margin-top:24px}
+  .hero small{display:block;margin-top:24px;padding-top:0}
+  .hero hr{margin:22px 0}
+  .feats{gap:16px}
+  .mobtitle,.mfoot{display:none}
+}
+@media (max-width:480px){
+  .hero .logo{width:72px;height:72px;border-radius:15px}
+  .hero .logo img{width:54px}
+  .hero h1{font-size:22px}
+  .hero .desc{font-size:15px}
+  .feats li{font-size:15.5px}
+}
+
+/* Logo: larger, crisp, clearly readable on a clean white card */
+.logo{width:auto;height:auto;padding:18px 26px;border-radius:22px;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+.logo img{width:124px;height:auto;image-rendering:auto}
+@media (max-width:900px){.hero .logo{width:auto;height:auto;padding:14px 20px;border-radius:18px}.hero .logo img{width:100px}}
+@media (max-width:480px){.hero .logo{width:auto;height:auto;padding:12px 18px;border-radius:16px}.hero .logo img{width:88px}}
 </style>
 </head>
 <body>
 <div class="shell">
   <aside class="hero">
-    <div class="brandblk"><div class="logo"><img src="logo.png" alt="Agrigate Network Ltd."></div><div class="bn">AGRIGATE NETWORK LTD.</div></div>
+    <div class="logo"><img src="logo.png" alt="Agrigate Network Ltd."></div>
     <div class="mobtitle">Agrigate Network Ltd.<small>SCM Dashboard</small></div>
     <div class="mid">
-      <h1>Supply Chain <em>Performance</em>, at a Glance.</h1>
-      <p>Monitor truck-wise deliveries, purchase performance, and monthly gross profit through one centralized dashboard, powered by live Google Sheets data.</p>
+      <h1>Supply Chain Performance, at a Glance.</h1>
+      <p class="desc">A centralized view of supply, procurement, and profitability performance across Agrigate Network Ltd.</p>
+      <hr>
       <ul class="feats">
-        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h14v12H1zM15 8h4l4 4v4h-8z"/><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="18.5" r="2.3"/></svg></i>Truck-Wise Supply Tracking</li>
-        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></i>Monthly Gross Profit &amp; Margin Analysis</li>
-        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></i>Live Data Synchronization with Google Sheets</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4h14v12H1zM15 8h4l4 4v4h-8z"/><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="18.5" r="2.3"/></svg>Truck-Wise Supply Tracking</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18M6 20v-6M11 20v-9M16 20v-5M3 9l5-4 4 3 7-5"/></svg>Monthly Gross Profit &amp; Margin Analysis</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8.5M3 3v5.5h5.5M3 12a9 9 0 0 0 15.5 6.2L21 15.5M21 21v-5.5h-5.5"/></svg>Live Google Sheets Data Integration</li>
       </ul>
     </div>
-    <small>&copy; <span id="yr"></span> Agrigate Network Ltd.</small>
+    <small>&copy; <span id="yr"></span> Agrigate Network Ltd. All rights reserved.</small>
   </aside>
 
   <main class="pane">
     <section class="card" aria-labelledby="ttl">
       <h2 id="ttl">Welcome back</h2>
-      <p class="lead">Sign in to open the dashboard.</p>
+      <p class="lead">Sign in to access the SCM dashboard.</p>
 
       <div id="msg" class="msg" role="alert" aria-live="polite"></div>
 
       <form id="f" novalidate>
         <div class="field">
-          <label for="email">Email</label>
-          <div class="inp"><input id="email" name="email" type="email" inputmode="email" autocomplete="username" placeholder="you@company.com" autocapitalize="none" spellcheck="false" required></div>
+          <label for="email">Email address</label>
+          <div class="inp"><input id="email" name="email" type="email" inputmode="email" autocomplete="username" placeholder="Enter your company-authorized email" enterkeyhint="next" autocapitalize="none" spellcheck="false" required></div>
         </div>
         <div class="field">
           <label for="pw">Password</label>
           <div class="inp pw">
-            <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" enterkeyhint="go" required>
             <button type="button" id="eye" class="eye" aria-label="Show password" aria-pressed="false">
               <svg id="eyeOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg id="eyeOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.1-5.9M9.9 5.1A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.2M1 1l22 22"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/></svg>
@@ -142,7 +190,8 @@ label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0
         </div>
         <button id="go" class="btn" type="submit"><span class="spin" aria-hidden="true"></span><span id="goT">Sign in</span></button>
       </form>
-      <p class="foot">Access is by invitation only. Contact your administrator for an account.</p>
+      <p class="foot">Authorized users only. Contact your administrator if you need access.</p>
+      <p class="mfoot">&copy; <span id="yr2"></span> Agrigate Network Ltd. All rights reserved.</p>
     </section>
   </main>
 </div>
@@ -152,7 +201,7 @@ import { auth, setPersistence, browserLocalPersistence, browserSessionPersistenc
          signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from './firebase-config.js';
 
 const $ = id => document.getElementById(id);
-$('yr').textContent = new Date().getFullYear();
+$('yr').textContent = $('yr2').textContent = new Date().getFullYear();
 const go = () => location.replace('index.html');
 
 // Already signed in? Skip straight to the dashboard.
