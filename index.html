@@ -11,6 +11,30 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<meta name="robots" content="noindex,nofollow">
+<script>
+document.documentElement.classList.add('auth-pending');
+window.__AUTH_READY=new Promise(function(r){window.__authOk=r;});
+setTimeout(function(){ if(document.documentElement.classList.contains('auth-pending')){ var m=document.getElementById('authMsg'); if(m) m.innerHTML='Couldn\u2019t verify your sign-in. <a href="login.html">Go to sign in</a>'; } },10000);
+</script>
+<script type="module">
+import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
+onAuthStateChanged(auth, function(user){
+  if(!user){ location.replace('login.html'); return; }
+  document.documentElement.classList.remove('auth-pending');
+  var b=document.getElementById('logoutBtn');
+  if(b){ b.title='Sign out ('+(user.email||'')+')'; b.onclick=function(){ signOut(auth).finally(function(){ location.replace('login.html'); }); }; }
+  window.__authOk(user);
+});
+</script>
+<style>
+html.auth-pending .wrap{display:none!important}
+#authGate{display:none;position:fixed;inset:0;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg,#edf0ec);color:var(--muted,#65746b);font:600 14px var(--font,system-ui,sans-serif)}
+html.auth-pending #authGate{display:flex}
+#authGate i{width:30px;height:30px;border-radius:50%;border:3px solid #ccd065;border-top-color:#658b2e;animation:agspin .8s linear infinite}
+#authGate a{color:#658b2e}
+@keyframes agspin{to{transform:rotate(360deg)}}
+</style>
 <style>
 :root{
   --bg:#edf0ec; --surface:#ffffff; --ink:#16231c; --muted:#65746b; --line:#dbe2dc; --soft:#f4f7f4;
@@ -591,6 +615,7 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 </style>
 </head>
 <body>
+<div id="authGate" role="status"><i></i><span id="authMsg">Checking sign-in…</span></div>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -604,6 +629,9 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
       <span class="chip" id="cntChip" title="Total truck deliveries (current filter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4h14v12H1zM15 8h4l4 4v4h-8z"/><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="18.5" r="2.3"/></svg><b id="truckN">0</b> Trucks</span>
       <button id="refresh" class="primary">
         <svg width="16" height="16" style="flex:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Refresh
+      </button>
+      <button id="logoutBtn" class="primary iconbtn" aria-label="Sign out" title="Sign out">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
       </button>
       <div class="menuwrap">
         <button id="menuBtn" class="primary iconbtn" aria-haspopup="dialog" aria-expanded="false" aria-label="Filters and data status" title="Filters and data status">
@@ -1339,6 +1367,7 @@ $('sortSel').onchange=()=>{ const [k,d]=$('sortSel').value.split(':'); sortKey=k
 $('dataCards').onclick=e=>{ if(e.target.id==='moreCards'){ cardLimit+=100; renderTable(); } };
 /* ---------- Start ---------- */
 (async function init(){
+  await window.__AUTH_READY;
   if(APPS_SCRIPT_URL){
     try{
       const r = await fetch(APPS_SCRIPT_URL+'?action=tabs');
