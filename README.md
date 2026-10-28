@@ -1,4 +1,4 @@
-# Agrigate Network Ltd. – Supply Dashboard (with Firebase login)
+# Agrigate Network Ltd. – SCM Dashboard (with Firebase login)
 
 ## Files
 | File | What it does |
