@@ -28,11 +28,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15p
 .hero::before,.hero::after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(204,208,101,.18);pointer-events:none}
 .hero::before{width:520px;height:520px;right:-190px;bottom:-200px}
 .hero::after{width:320px;height:320px;right:-90px;bottom:-100px;border-color:rgba(204,208,101,.28)}
+.brandblk{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;width:max-content}
+.bn{font-size:12.5px;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.88);padding-left:4px}
 .logo{display:inline-flex;background:#fff;border-radius:18px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.22);width:max-content}
 .logo img{height:74px;width:auto;display:block}
-.hero h1{margin:0 0 14px;font-size:clamp(28px,3vw,40px);line-height:1.12;font-weight:800;letter-spacing:-.025em;max-width:16ch}
+.hero h1{margin:0 0 14px;font-size:clamp(28px,3vw,40px);line-height:1.12;font-weight:800;letter-spacing:-.025em;max-width:18ch}
 .hero h1 em{font-style:normal;color:var(--gold)}
-.hero p{margin:0;color:rgba(255,255,255,.78);max-width:44ch}
+.hero p{margin:0;color:rgba(255,255,255,.78);max-width:50ch}
 .feats{list-style:none;margin:30px 0 0;padding:0;display:grid;gap:12px;position:relative;z-index:1}
 .feats li{display:flex;align-items:center;gap:12px;font-weight:600;color:rgba(255,255,255,.92)}
 .feats i{flex:none;width:32px;height:32px;border-radius:10px;background:rgba(204,208,101,.16);border:1px solid rgba(204,208,101,.35);display:grid;place-items:center;color:var(--gold)}
@@ -82,7 +84,7 @@ label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0
 @media (max-width:900px){
   .shell{grid-template-columns:1fr}
   .hero{padding:22px 22px 26px;gap:18px}
-  .hero .mid,.hero small{display:none}
+  .hero .mid,.hero small,.bn{display:none}
   .hero .logo img{height:52px}
   .hero{flex-direction:row;align-items:center;justify-content:flex-start;gap:16px}
   .hero::before,.hero::after{display:none}
@@ -97,15 +99,15 @@ label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0
 <body>
 <div class="shell">
   <aside class="hero">
-    <div class="logo"><img src="logo.png" alt="Agrigate Network Ltd."></div>
+    <div class="brandblk"><div class="logo"><img src="logo.png" alt="Agrigate Network Ltd."></div><div class="bn">AGRIGATE NETWORK LTD.</div></div>
     <div class="mobtitle">Agrigate Network Ltd.<small>SCM Dashboard</small></div>
     <div class="mid">
-      <h1>Supply &amp; <em>trading</em> performance, at a glance.</h1>
-      <p>Truck-wise supply, purchases and monthly gross profit, live from your Google Sheet.</p>
+      <h1>Supply Chain <em>Performance</em>, at a Glance.</h1>
+      <p>Monitor truck-wise deliveries, purchase performance, and monthly gross profit through one centralized dashboard, powered by live Google Sheets data.</p>
       <ul class="feats">
-        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h14v12H1zM15 8h4l4 4v4h-8z"/><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="18.5" r="2.3"/></svg></i>Truck-wise supply tracking</li>
-        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></i>Monthly gross profit &amp; margin</li>
-        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></i>Always up to date with the sheet</li>
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h14v12H1zM15 8h4l4 4v4h-8z"/><circle cx="6" cy="18.5" r="2.3"/><circle cx="18" cy="18.5" r="2.3"/></svg></i>Truck-Wise Supply Tracking</li>
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></i>Monthly Gross Profit &amp; Margin Analysis</li>
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></i>Live Data Synchronization with Google Sheets</li>
       </ul>
     </div>
     <small>&copy; <span id="yr"></span> Agrigate Network Ltd.</small>
