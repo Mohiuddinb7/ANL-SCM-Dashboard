@@ -783,9 +783,19 @@ const SHEET_ID = '1en28uB-YyAWkb8gz2qe3i_w0xMJrk60lCZkOgWiP3_o';
 /* Optional but most reliable: paste your Google Apps Script Web App URL here (ends with /exec).
    Leave empty to read the sheet directly (needs "Anyone with the link: Viewer"). */
 const APPS_SCRIPT_URL = '';
-/* Only "Supply Details" tabs are read: Sep 2025 to Oct 2026 (14 sheets). Other tabs are ignored. */
-const MONTHS=[['Sep',25],['Oct',25],['Nov',25],['Dec',25],['Jan',26],['Feb',26],['Mar',26],['Apr',26],['May',26],['June',26],['July',26],['Aug',26],['Sep',26],['Oct',26]];
-const DEFAULT_TABS = MONTHS.map(([m,y])=>`Supply Details ${m}'${y}`).reverse();
+/* Only "Supply Details" tabs are read. Tab names follow "Supply Details <Mon>'<yy>" (e.g. Supply Details Nov'26).
+   The list is generated automatically: Sep 2025 up to two months ahead, so a new month tab is picked up as soon as you create it. */
+const MNAMES=['Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'];
+const OPT_TABS=new Set();   // current and future months: silently skipped while the tab does not exist / is still empty
+function genTabs(){
+  const now=new Date(), nowK=now.getFullYear()*12+now.getMonth(), out=[];
+  for(let k=2025*12+8;k<=nowK+2;k++){
+    const y=Math.floor(k/12), m=k%12, name=`Supply Details ${MNAMES[m]}'${String(y).slice(2)}`;
+    out.push(name); if(k>=nowK) OPT_TABS.add(name);
+  }
+  return out.reverse();
+}
+const DEFAULT_TABS = genTabs();
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
 const fmt = (n,d=0) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -892,7 +902,7 @@ async function fetchTab(name){
   const m=name.match(TAB_RE);
   const exp=m?`20${m[2]}-${pad(MON[m[1].slice(0,3).toLowerCase()]+1)}`:'';
   const cache=store.get('tabNames2',{});
-  const tries=[...new Set([cache[name],...variants(name)].filter(Boolean))];
+  const vv=variants(name), tries=[...new Set([cache[name],...(OPT_TABS.has(name)?vv.slice(0,3):vv)].filter(Boolean))];
   const errs=[]; let empty=null, net=0;
   for(const nm of tries){
     try{
@@ -955,10 +965,11 @@ function gvizScript(name,full){
 }
 
 async function load(){
-  const names = tabs;
   $('refresh').classList.add('spin');
   setStatus('Loading data from Google Sheets...'); setLive('load');
-  const res = await Promise.allSettled(names.map(fetchTab));
+  const raw = await Promise.allSettled(tabs.map(fetchTab));
+  const names=[], res=[];
+  raw.forEach((r,i)=>{ if(OPT_TABS.has(tabs[i]) && (r.status==='rejected'||!r.value.length)) return; names.push(tabs[i]); res.push(r); });
   const fails=[], rep=[]; DATA=[];
   res.forEach((r,i)=>{
     if(r.status==='fulfilled'){ DATA.push(...r.value); rep.push({n:names[i],ok:true,c:r.value.length,u:r.value._used,t:r.value._tried}); }
