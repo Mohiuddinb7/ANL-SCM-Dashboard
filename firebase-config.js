@@ -25,7 +25,7 @@ export {
 };
 
 /* ====== PASTE your deployed Apps Script web-app URL here (ends with /exec) ====== */
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxMeAottJP8lXjwBU493TsPzX3sQ2vEGTDBgVY7BuCHyqEHai_63rMAUQa--rTkZn3e/exec';
+export const API_URL = 'https://script.google.com/macros/s/AKfycbwbKnAAHa4IsK1K0kWsIPiEF7PL_78PDCZKUu5DrevOW7mPlii01PNI4T9TqZ5JwIDe/exec';
 /* ================================================================================ */
 export const apiReady = () => /^https:\/\/script\.google\.com\//.test(API_URL);
 
@@ -41,11 +41,12 @@ export async function api(user, action, payload = {}) {
   return j;
 }
 
-/* "admin" | "management" | "collector" - from the server, cached for 5 minutes in this browser tab */
-export async function getRole(user) {
-  const k = 'scm_role_' + user.uid, now = Date.now();
-  try { const c = JSON.parse(sessionStorage.getItem(k) || 'null'); if (c && now - c.t < 300000) return c.r; } catch (e) {}
-  const r = await api(user, 'whoami');
-  try { sessionStorage.setItem(k, JSON.stringify({r:r.role, t:now})); } catch (e) {}
-  return r.role;
+/* { role: "admin"|"management"|"collector", kinds: ["sales","purchase"] } - from the server, cached for 5 minutes in this browser tab */
+export async function getAccess(user) {
+  const k = 'scm_acc_' + user.uid, now = Date.now();
+  try { const c = JSON.parse(sessionStorage.getItem(k) || 'null'); if (c && now - c.t < 300000) return c.a; } catch (e) {}
+  const r = await api(user, 'whoami'), a = {role: r.role, kinds: r.kinds || []};
+  try { sessionStorage.setItem(k, JSON.stringify({a, t: now})); } catch (e) {}
+  return a;
 }
+export const getRole = async user => (await getAccess(user)).role;

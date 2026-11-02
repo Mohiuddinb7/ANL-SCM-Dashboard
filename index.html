@@ -23,7 +23,8 @@ window.__AUTH_READY=new Promise(function(r){window.__authOk=r;});
 setTimeout(function(){ if(document.documentElement.classList.contains('auth-pending')){ var m=document.getElementById('authMsg'); if(m) m.innerHTML='Couldn\u2019t verify your sign-in. <a href="login.html">Go to sign in</a>'; } },10000);
 </script>
 <script type="module">
-import { auth, onAuthStateChanged, signOut, getRole, apiReady } from './firebase-config.js';
+import { auth, onAuthStateChanged, signOut, getRole, apiReady, api } from './firebase-config.js';
+window.__api=api; window.__apiReady=apiReady;
 onAuthStateChanged(auth, async function(user){
   if(!user){ location.replace('login.html'); return; }
   var role='admin';                                   // access service not configured yet: behave as before
@@ -1018,7 +1019,20 @@ function gvizScript(name,full){
   });
 }
 
+async function loadApi(){
+  $('refresh').classList.add('spin'); setStatus('Loading data from Master Sales Data...'); setLive('load');
+  try{
+    const u=await window.__AUTH_READY, r=await window.__api(u,'dash_sales');
+    DATA=r.rows.map(x=>{ const dt=parseDate(x.iso); return {tab:r.tab,item:x.item,cust:(x.cust||'').trim()||'(blank)',po:cleanPo(x.po)||'(blank)',truck:x.truck,sw:x.sw,rw:x.rw,sales:x.sales,rate:x.rate,
+      iso:dt?`${dt.y}-${pad(dt.m+1)}-${pad(dt.d)}`:'',month:dt?`${dt.y}-${pad(dt.m+1)}`:'',year:dt?String(dt.y):''}; });
+    $('refresh').classList.remove('spin'); buildPerMonths(); buildFilters(); render();
+    const time=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    setLive('ok',time); $('sheetInfo').classList.add('hidden');
+    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${esc(r.tab)}</b>. Updated ${time}.`);
+  }catch(e){ $('refresh').classList.remove('spin'); setLive('off'); setStatus('Could not load data: '+esc(e.message),true); }
+}
 async function load(){
+  if(window.__apiReady&&window.__apiReady()) return loadApi();   // Apps Script (Master Sales Data); old Supply Details path below is the fallback
   $('refresh').classList.add('spin');
   setStatus('Loading data from Google Sheets...'); setLive('load');
   const raw = await Promise.allSettled(tabs.map(fetchTab));
@@ -1728,7 +1742,9 @@ function monthKey(s){
   const d=parseDate(s); return d?`${d.y}-${pad(d.m+1)}`:'';
 }
 const mlab=k=>/^\d{4}-\d{2}$/.test(k)?MONN[+k.slice(5)-1]+' '+k.slice(0,4):k;
+let PU_LONG=false;
 async function purchMatrix(){
+  if(window.__apiReady&&window.__apiReady()){ const u=await window.__AUTH_READY, r=await window.__api(u,'dash_purchase'); PU_LONG=true; PU_SRC.used=r.tab; return r.values; }
   let last;
   for(const nm of PU_NAMES){
     try{
@@ -1744,7 +1760,7 @@ function analysePurch(m,w){
   const filled=r=>m[r].filter(c=>String(c).trim()).length;
   const isN=v=>/^[\d,.()\s-]+$/.test(v)&&/\d/.test(v);
   /* structural layout: [SL] Product | Supplier | Month (Oct-24) | Qty | Rate | Amount | Remarks  (header cells may be blank) */
-  { const recs=[]; let mi0=-1;
+  if(!PU_LONG){ const recs=[]; let mi0=-1;
     for(let r=0;r<m.length;r++){
       let mi=-1; for(let i=0;i<w;i++){ if(MRE.test(cell(r,i))){ mi=i; break; } }
       if(mi<0) continue;
@@ -1758,7 +1774,7 @@ function analysePurch(m,w){
   let h=-1; for(let i=0;i<Math.min(m.length,25);i++) if(filled(i)>=3){h=i;break;}
   if(h<0) return null;
   /* wide layout: months across the header */
-  for(const hr of [h,h+1,h-1]){
+  for(const hr of (PU_LONG?[]:[h,h+1,h-1])){
     if(hr<0||hr>=m.length) continue;
     const mc=[]; for(let i=0;i<w;i++){ const k=monthKey(cell(hr,i)); if(k) mc.push([i,k]); }
     if(mc.length<2) continue;

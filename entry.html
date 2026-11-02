@@ -113,6 +113,10 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end}
   .toolbar label{width:100%}
   input,select{font-size:16px}
 }
+.tabs{display:flex;gap:8px;margin:16px 0 0}
+.tabs button{height:42px;padding:0 22px;border-radius:999px;font-size:15px}
+.tabs button[aria-pressed=true]{background:var(--band);border-color:var(--band);color:#fff}
+.bar .sub b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -120,248 +124,181 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end}
 <div class="page">
   <header class="bar">
     <div class="logo"><img src="logo.png" alt="Agrigate"></div>
-    <div><h1>SCM Data Entry</h1><div class="sub" id="sub">Master Sales · all entries (administrator view)</div></div>
+    <div><h1>SCM Data Entry</h1><div class="sub" id="sub">Master Sales Data · Master Purchase Data</div></div>
     <div class="sp"></div>
     <span class="who" id="who"></span>
     <a class="btn adm" href="index.html" title="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Dashboard</a>
     <button id="out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
   </header>
-
+  <div class="tabs" id="tabs"></div>
   <div id="banner" class="banner" role="alert"></div>
-
   <div class="toolbar">
-    <label>Delivery month <input type="month" id="mon"></label>
-    <button id="allm" title="Show every row of Master Sales">All months</button>
-    <input type="search" id="q" placeholder="Search truck, customer, challan, PO…" aria-label="Search">
-    <button id="reload" title="Reload from the sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v6h-6"/></svg>Reload</button>
-    <button id="new" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New entry</button>
+    <label>Month <input type="month" id="mon"></label>
+    <button id="allm">All months</button>
+    <input type="search" id="q" placeholder="Search…" aria-label="Search">
+    <button id="reload">Reload</button>
+    <button id="new" class="primary">+ New entry</button>
     <span class="chip" id="cnt">—</span>
   </div>
-
   <div class="grid">
-    <section class="card" id="formCard" aria-labelledby="ft">
+    <section class="card" id="formCard">
       <h2><span id="ft">New entry</span><span class="tag" id="ftag" hidden>Editing</span></h2>
       <form class="form" id="f" novalidate autocomplete="off">
         <div class="fg" id="fg"></div>
-        <div class="hint" id="calc">Supply value (S. Weight × Rate): <b>—</b></div>
-        <label class="chkrow" id="keepRow"><input type="checkbox" id="keep" checked> Keep customer &amp; PO details for the next entry</label>
-        <div class="actions">
-          <button type="submit" class="primary" id="save">Save entry</button>
-          <button type="button" id="cancel" hidden>Cancel edit</button>
-        </div>
+        <div class="hint" id="calc"></div>
+        <label class="chkrow" id="keepRow"><input type="checkbox" id="keep" checked> Keep party &amp; rate details for the next entry</label>
+        <div class="actions"><button type="submit" class="primary" id="save">Save entry</button><button type="button" id="cancel" hidden>Cancel edit</button></div>
       </form>
     </section>
-
-    <section class="card" aria-labelledby="lt">
-      <h2><span id="lt">Master Sales</span></h2>
-      <div class="scroll"><table id="tb"></table></div>
-    </section>
+    <section class="card"><h2><span id="lt">Master Sales Data</span></h2><div class="scroll"><table id="tb"></table></div></section>
   </div>
 </div>
-
-<dialog id="dlg">
-  <h3>Delete this entry?</h3>
-  <p>It will be removed from the Google Sheet. This cannot be undone.</p>
-  <div class="kv" id="dkv"></div>
-  <div class="row"><button id="dno">Keep it</button><button id="dyes" class="danger">Delete</button></div>
-</dialog>
+<dialog id="dlg"><h3>Delete this entry?</h3><p>It will be removed from the Google Sheet. This cannot be undone.</p><div class="kv" id="dkv"></div><div class="row"><button id="dno">Keep it</button><button id="dyes" class="danger">Delete</button></div></dialog>
 <div id="toast" role="status"></div>
-<datalist id="dlItem"></datalist><datalist id="dlCust"></datalist><datalist id="dlLoc"></datalist><datalist id="dlTruck"></datalist>
-
 <script type="module">
-import { auth, onAuthStateChanged, signOut, api, apiReady, getRole } from './firebase-config.js';
-
+import { auth, onAuthStateChanged, signOut, api, apiReady, getAccess } from './firebase-config.js';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
 
-/* form fields (same order as the sheet) */
-const F = [
-  {k:'item',    l:'Item',            t:'text',   list:'dlItem', req:1, full:1},
-  {k:'truck',   l:'Truck No',        t:'text',   list:'dlTruck', req:1},
-  {k:'ddate',   l:'Delivery Date',   t:'date',   req:1},
-  {k:'challan', l:'Challan No',      t:'text'},
-  {k:'bags',    l:'Bag PCS',         t:'number', step:'1', mode:'numeric'},
-  {k:'cust',    l:'Customer Name',   t:'text',   list:'dlCust', req:1, full:1},
-  {k:'po',      l:'WO / PO No',      t:'text'},
-  {k:'podate',  l:'WO / PO Date',    t:'date'},
-  {k:'rate',    l:'WO / PO Rate',    t:'number', step:'any', mode:'decimal'},
-  {k:'sw',      l:'S. Weight (Kg)',  t:'number', step:'any', mode:'decimal', req:1},
-  {k:'rw',      l:'R. Weight (Kg)',  t:'number', step:'any', mode:'decimal'},
-  {k:'loc',     l:'Supply Location', t:'text',   list:'dlLoc', full:1}
-];
-$('fg').innerHTML = F.map(f => `<div class="${f.full ? 'full' : ''}"><label for="f_${f.k}">${f.l}${f.req ? ' <b>*</b>' : ''}</label>` +
-  `<input id="f_${f.k}" name="${f.k}" type="${f.t}"${f.step ? ` step="${f.step}"` : ''}${f.mode ? ` inputmode="${f.mode}"` : ''}${f.list ? ` list="${f.list}"` : ''} autocomplete="off"></div>`).join('');
-const inp = k => $('f_' + k);
-
-let ROLE = '', user = null, rows = [], LK = {items:[], custs:[], locs:[], trucks:[], last:{}}, editing = null, month = '';
-
-/* ---------- helpers ---------- */
-function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'on' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = '', err ? 5000 : 2600); }
-function banner(msg, kind) { const b = $('banner'); b.textContent = msg || ''; b.className = 'banner' + (msg ? ' on ' + (kind || 'warn') : ''); }
-function busy(on) { $('save').disabled = on; $('save').textContent = on ? 'Saving…' : (editing ? 'Update entry' : 'Save entry'); }
+/* one definition per data type: fields (same order as the sheet), headline total, calculated hint */
+const KINDS = {
+  sales: {title:'Master Sales Data', dateKey:'ddate', total:r => (Number(r.v.sw) || 0) / 1000, totalTxt:' MT', keep:['item','ddate','cust','po','podate','rate','loc'],
+    hint:v => ['Supply value (S. Weight × Rate)', (Number(v.sw) || 0) * (Number(v.rate) || 0)], lastKey:'cust', num:['bags','rate','sw','rw'],
+    chk:'Keep customer & PO details for the next entry', del:r => `<b>${esc(r.d.item)}</b> · ${esc(r.d.truck)}<br>${esc(r.d.cust)} · ${esc(r.d.ddate)}<br>Challan ${esc(r.d.challan || '—')} · ${esc(r.d.sw)} Kg`,
+    F:[{k:'item',l:'Item',t:'text',list:'item',req:1,full:1},{k:'truck',l:'Truck No',t:'text',list:'truck',req:1},{k:'ddate',l:'Delivery Date',t:'date',req:1},
+       {k:'challan',l:'Challan No',t:'text'},{k:'bags',l:'Bag PCS',t:'number',step:'1',mode:'numeric'},{k:'cust',l:'Customer Name',t:'text',list:'cust',req:1,full:1},
+       {k:'po',l:'WO / PO No',t:'text'},{k:'podate',l:'WO / PO Date',t:'date'},{k:'rate',l:'WO / PO Rate',t:'number',step:'any',mode:'decimal'},
+       {k:'sw',l:'S. Weight (Kg)',t:'number',step:'any',mode:'decimal',req:1},{k:'rw',l:'R. Weight (Kg)',t:'number',step:'any',mode:'decimal'},{k:'loc',l:'Supply Location',t:'text',list:'loc',full:1}],
+    ok:r => !r.item ? ['item','Item is required.'] : !r.truck ? ['truck','Truck No is required.'] : !r.ddate ? ['ddate','Delivery Date is required.'] : !r.cust ? ['cust','Customer Name is required.'] : !(Number(r.sw) > 0) ? ['sw','S. Weight (Kg) must be greater than 0.'] : null},
+  purchase: {title:'Master Purchase Data', dateKey:'pdate', total:r => Number(r.v.amt) || 0, totalTxt:' BDT', keep:['pdate','item','sup','rate'],
+    hint:v => ['Amount (Quantity × Rate)', (Number(v.qty) || 0) * (Number(v.rate) || 0)], lastKey:'sup', num:['qty','rate','amt'],
+    chk:'Keep supplier & rate for the next entry', del:r => `<b>${esc(r.d.item)}</b> · ${esc(r.d.sup)}<br>${esc(r.d.pdate)} · Ref ${esc(r.d.ref || '—')}<br>${esc(r.d.qty)} · ${esc(r.d.amt)}`,
+    F:[{k:'pdate',l:'Purchase Date',t:'date',req:1},{k:'item',l:'Item',t:'text',list:'item',req:1},{k:'sup',l:'Supplier',t:'text',list:'sup',req:1,full:1},
+       {k:'ref',l:'Invoice / Challan No',t:'text'},{k:'qty',l:'Quantity',t:'number',step:'any',mode:'decimal',req:1},{k:'rate',l:'Rate',t:'number',step:'any',mode:'decimal'},
+       {k:'amt',l:'Amount (BDT) – auto if blank',t:'number',step:'any',mode:'decimal'},{k:'rem',l:'Remarks',t:'text',full:1}],
+    ok:r => !r.pdate ? ['pdate','Purchase Date is required.'] : !r.item ? ['item','Item is required.'] : !r.sup ? ['sup','Supplier is required.'] : !(Number(r.qty) > 0) ? ['qty','Quantity must be greater than 0.'] : null}
+};
+let ROLE = '', user = null, KS = ['sales'], kind = 'sales', rows = [], LB = {}, LK = {lists:{}, last:{}}, editing = null, month = '';
+const K = () => KINDS[kind], inp = k => $('f_' + k);
+const call = (action, payload = {}) => api(user, action, {kind, ...payload});
+const toast = (m, err) => { const t = $('toast'); t.textContent = m; t.className = 'on' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = '', err ? 5000 : 2600); };
+const banner = (m, k) => { const b = $('banner'); b.textContent = m || ''; b.className = 'banner' + (m ? ' on ' + (k || 'warn') : ''); };
+const busy = on => { $('save').disabled = on; $('save').textContent = on ? 'Saving…' : (editing ? 'Update entry' : 'Save entry'); };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-
-const call = (action, payload = {}) => api(user, action, payload);
+const lbl = f => (kind === 'purchase' && LB[f.k] && ['qty','rate'].includes(f.k)) ? LB[f.k] : f.l;
 
 /* ---------- auth ---------- */
 onAuthStateChanged(auth, async u => {
   if (!u) { location.replace('login.html'); return; }
   user = u;
-  try { ROLE = apiReady() ? await getRole(u) : 'admin'; }
-  catch (e) {
-    $('gateMsg').textContent = e.message + ' ';
-    const a1 = document.createElement('a'); a1.href = '#'; a1.textContent = 'Sign out';
-    a1.onclick = ev => { ev.preventDefault(); signOut(auth).finally(() => location.replace('login.html')); };
-    $('gateMsg').appendChild(a1); return;
-  }
-  if (ROLE === 'management') { location.replace('index.html'); return; }   // management only sees the dashboard
-  document.body.dataset.role = ROLE;
-  document.documentElement.classList.remove('auth-pending');
-  $('who').textContent = (u.email || '') + ' · ' + ({admin:'Administrator', collector:'Data entry'}[ROLE] || ROLE); $('who').title = u.email || '';
-  if (ROLE === 'collector') { $('sub').textContent = 'You can add entries and edit your own entries'; $('lt').textContent = 'My entries'; }
-  start();
+  try { const a = apiReady() ? await getAccess(u) : {role:'admin', kinds:['sales','purchase']}; ROLE = a.role; KS = a.kinds; }
+  catch (e) { $('gateMsg').textContent = e.message + ' '; const a1 = document.createElement('a'); a1.href = '#'; a1.textContent = 'Sign out'; a1.onclick = ev => { ev.preventDefault(); signOut(auth).finally(() => location.replace('login.html')); }; $('gateMsg').appendChild(a1); return; }
+  if (ROLE === 'management') { location.replace('index.html'); return; }
+  document.body.dataset.role = ROLE; document.documentElement.classList.remove('auth-pending');
+  $('who').textContent = (u.email || '') + ' · ' + ({admin:'Administrator', collector:'Data entry'}[ROLE] || ROLE);
+  if (ROLE === 'collector') $('sub').textContent = 'You can add entries and edit your own entries';
+  $('tabs').innerHTML = KS.map(k => `<button data-k="${k}">${k === 'sales' ? 'Sales' : 'Purchase'}</button>`).join('');
+  $('tabs').style.display = KS.length > 1 ? '' : 'none';
+  month = todayISO().slice(0, 7); $('mon').value = month; setKind(KS[0]);
 });
 $('out').onclick = () => signOut(auth).finally(() => location.replace('login.html'));
+$('tabs').onclick = e => { const b = e.target.closest('button[data-k]'); if (b && b.dataset.k !== kind) setKind(b.dataset.k); };
 
-/* ---------- loading ---------- */
-async function start() {
-  const d = new Date(); month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  $('mon').value = month; resetForm(true);
-  if (!apiReady()) { banner('Setup needed: paste your Apps Script web-app URL into API_URL inside firebase-config.js (see README).', 'warn'); renderTable(); return; }
-  await Promise.all([loadLookups(), loadList()]);
+/* ---------- switching Sales / Purchase ---------- */
+function setKind(k) {
+  kind = k; rows = []; LB = {}; LK = {lists:{}, last:{}}; editing = null;
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k));
+  $('keepRow').lastChild.textContent = ' ' + K().chk;
+  document.querySelectorAll('datalist').forEach(d => d.remove());
+  ['item','truck','cust','loc','sup'].forEach(n => { const d = document.createElement('datalist'); d.id = 'dl_' + n; document.body.appendChild(d); });
+  buildForm(); resetForm(true);
+  if (!apiReady()) { banner('Setup needed: paste your Apps Script web-app URL into API_URL inside firebase-config.js (see README).'); renderTable(); return; }
+  Promise.all([loadLookups(), loadList()]);
+}
+function buildForm() {
+  $('fg').innerHTML = K().F.map(f => `<div class="${f.full ? 'full' : ''}"><label for="f_${f.k}">${esc(lbl(f))}${f.req ? ' <b>*</b>' : ''}</label>` +
+    `<input id="f_${f.k}" name="${f.k}" type="${f.t}"${f.step ? ` step="${f.step}"` : ''}${f.mode ? ` inputmode="${f.mode}"` : ''}${f.list ? ` list="dl_${f.list}"` : ''} autocomplete="off"></div>`).join('');
+  K().F.forEach(f => inp(f.k).addEventListener('input', calc));
+  [K().lastKey, 'item'].forEach(k => inp(k).addEventListener('change', autofill));
 }
 async function loadLookups() {
-  try {
-    LK = await call('lookups');
-    const fill = (id, arr) => $(id).innerHTML = (arr || []).map(v => `<option value="${esc(v)}">`).join('');
-    fill('dlItem', LK.items); fill('dlCust', LK.custs); fill('dlLoc', LK.locs); fill('dlTruck', LK.trucks);
-  } catch (e) { banner(e.message, 'err'); }
+  try { LK = await call('lookups'); Object.entries(LK.lists || {}).forEach(([k, arr]) => { const d = $('dl_' + k); if (d) d.innerHTML = arr.map(v => `<option value="${esc(v)}">`).join(''); }); }
+  catch (e) { banner(e.message, 'err'); }
 }
 async function loadList() {
   $('tb').innerHTML = '<tbody><tr><td class="empty">Loading…</td></tr></tbody>';
-  try {
-    const r = await call('list', {month});
-    rows = r.rows || [];
-    banner('');
-    $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || 'Master Sales')) + (month ? ' · ' + month : ' · all months');
-  } catch (e) { rows = []; banner(e.message, 'err'); }
+  try { const r = await call('list', {month}); rows = r.rows || []; LB = r.labels || {}; banner(''); $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || K().title)) + (month ? ' · ' + month : ' · all months'); if (kind === 'purchase') document.querySelectorAll('#fg label').forEach((l, i) => { l.firstChild.textContent = lbl(K().F[i]); }); }
+  catch (e) { rows = []; banner(e.message, 'err'); }
   renderTable();
 }
 
 /* ---------- table ---------- */
 function renderTable() {
-  const q = $('q').value.trim().toLowerCase();
+  const q = $('q').value.trim().toLowerCase(), F = K().F, num = new Set(K().num);
   const list = rows.filter(r => !q || Object.values(r.d).join(' ').toLowerCase().includes(q));
-  const totKg = list.reduce((s, r) => s + (Number(r.v.sw) || 0), 0);
-  const CAP = 500, shown = list.length > CAP;
-  $('cnt').textContent = `${list.length} entr${list.length === 1 ? 'y' : 'ies'} · ${fmt(totKg / 1000, 2)} MT` + (shown ? ` (latest ${CAP} shown)` : '');
+  const tot = list.reduce((s, r) => s + K().total(r), 0), CAP = 500;
+  $('cnt').textContent = `${list.length} entr${list.length === 1 ? 'y' : 'ies'} · ${fmt(tot, 2)}${K().totalTxt}` + (list.length > CAP ? ` (latest ${CAP} shown)` : '');
   if (!list.length) { $('tb').innerHTML = `<tbody><tr><td class="empty">${rows.length ? 'No entries match your search.' : 'No entries for this month yet.'}</td></tr></tbody>`; return; }
-  const num = new Set(['bags', 'rate', 'sw', 'rw']);
   const adm = ROLE === 'admin';
-  const head = '<thead><tr><th>Sl</th>' + F.map(f => `<th${num.has(f.k) ? ' class="n"' : ''}>${f.l}</th>`).join('') + (adm ? '<th>Entered by</th><th>Entered at</th>' : '') + '<th class="act">Actions</th></tr></thead>';
-  const body = list.slice().reverse().slice(0, CAP).map(r =>
-    `<tr data-row="${r.row}"${editing && editing.row === r.row ? ' class="sel"' : ''}><td>${esc(r.d.sl || '')}</td>` +
-    F.map(f => `<td${num.has(f.k) ? ' class="n"' : ''}>${esc(r.d[f.k] || '')}</td>`).join('') +
-    (adm ? `<td>${esc(r.d.by || '')}</td><td>${esc(r.d.at || '')}</td>` : '') +
-    `<td class="act"><button data-a="edit" data-row="${r.row}">Edit</button>${adm ? `<button data-a="del" data-row="${r.row}" class="danger">Delete</button>` : ''}</td></tr>`).join('');
-  $('tb').innerHTML = head + '<tbody>' + body + '</tbody>';
+  $('tb').innerHTML = '<thead><tr><th>Sl</th>' + F.map(f => `<th${num.has(f.k) ? ' class="n"' : ''}>${esc(lbl(f))}</th>`).join('') + (adm ? '<th>Entered by</th><th>Entered at</th>' : '') + '<th class="act">Actions</th></tr></thead><tbody>' +
+    list.slice().reverse().slice(0, CAP).map(r => `<tr${editing && editing.row === r.row ? ' class="sel"' : ''}><td>${esc(r.d.sl || '')}</td>` + F.map(f => `<td${num.has(f.k) ? ' class="n"' : ''}>${esc(r.d[f.k] || '')}</td>`).join('') +
+      (adm ? `<td>${esc(r.d.by || '')}</td><td>${esc(r.d.at || '')}</td>` : '') +
+      `<td class="act"><button data-a="edit" data-row="${r.row}">Edit</button>${adm ? `<button data-a="del" data-row="${r.row}" class="danger">Delete</button>` : ''}</td></tr>`).join('') + '</tbody>';
 }
-$('tb').addEventListener('click', e => {
-  const b = e.target.closest('button[data-a]'); if (!b) return;
-  const rec = rows.find(r => r.row === +b.dataset.row); if (!rec) return;
-  if (b.dataset.a === 'edit') startEdit(rec); else if (ROLE === 'admin') askDelete(rec);
-});
+$('tb').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (!b) return; const rec = rows.find(r => r.row === +b.dataset.row); if (!rec) return; b.dataset.a === 'edit' ? startEdit(rec) : ROLE === 'admin' && askDelete(rec); });
 $('q').addEventListener('input', renderTable);
 $('mon').addEventListener('change', () => { month = $('mon').value || ''; loadList(); });
 $('allm').onclick = () => { month = ''; $('mon').value = ''; loadList(); };
 $('reload').onclick = async () => { await Promise.all([loadLookups(), loadList()]); toast('Reloaded'); };
 
 /* ---------- form ---------- */
-function calc() {
-  const v = (Number(inp('sw').value) || 0) * (Number(inp('rate').value) || 0);
-  $('calc').innerHTML = 'Supply value (S. Weight × Rate): <b>' + (v ? 'BDT ' + fmt(v, 2) : '—') + '</b>';
-}
-['sw', 'rate'].forEach(k => inp(k).addEventListener('input', calc));
-
+const readForm = () => { const r = {}; K().F.forEach(f => r[f.k] = inp(f.k).value.trim()); return r; };
+function calc() { const [t, v] = K().hint(readForm()); $('calc').innerHTML = t + ': <b>' + (v ? 'BDT ' + fmt(v, 2) : '—') + '</b>'; }
 function resetForm(full) {
-  const keep = !full && $('keep').checked;
-  const keepKeys = new Set(keep ? ['item', 'ddate', 'cust', 'po', 'podate', 'rate', 'loc'] : ['ddate']);
-  F.forEach(f => { if (!keepKeys.has(f.k)) inp(f.k).value = ''; });
-  if (!inp('ddate').value) inp('ddate').value = todayISO();
-  editing = null; $('ft').textContent = 'New entry'; $('ftag').hidden = true; $('cancel').hidden = true; $('keepRow').style.display = '';
-  $('save').textContent = 'Save entry'; calc(); renderTable();
+  const keepKeys = new Set(!full && $('keep').checked ? K().keep : [K().dateKey]);
+  K().F.forEach(f => { if (!keepKeys.has(f.k)) inp(f.k).value = ''; });
+  if (!inp(K().dateKey).value) inp(K().dateKey).value = todayISO();
+  editing = null; $('ft').textContent = 'New ' + (kind === 'sales' ? 'sales' : 'purchase') + ' entry'; $('ftag').hidden = true; $('cancel').hidden = true; $('keepRow').style.display = ''; $('save').textContent = 'Save entry'; calc(); renderTable();
 }
 function startEdit(rec) {
   editing = {row: rec.row, sig: rec.sig};
-  F.forEach(f => { const v = rec.v[f.k]; inp(f.k).value = v === undefined || v === null ? '' : v; });
-  $('ft').textContent = 'Edit entry'; $('ftag').hidden = false; $('cancel').hidden = false; $('keepRow').style.display = 'none';
-  $('save').textContent = 'Update entry'; calc(); renderTable();
-  $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); inp('item').focus({preventScroll:true});
+  K().F.forEach(f => { const v = rec.v[f.k]; inp(f.k).value = v == null ? '' : v; });
+  $('ft').textContent = 'Edit entry'; $('ftag').hidden = false; $('cancel').hidden = false; $('keepRow').style.display = 'none'; $('save').textContent = 'Update entry'; calc(); renderTable();
+  $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); inp(K().F[0].k).focus({preventScroll:true});
 }
 $('cancel').onclick = () => resetForm(true);
-$('new').onclick = () => { resetForm(true); $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); inp('item').focus({preventScroll:true}); };
-
-/* auto-fill PO details from the last entry of the same customer (+ item) */
-function autofill() {
+$('new').onclick = () => { resetForm(true); $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); };
+function autofill() {      /* fill PO / rate details from the last entry of the same party (+ item) */
   if (editing) return;
-  const c = inp('cust').value.trim(), it = inp('item').value.trim(); if (!c) return;
-  const hit = (LK.last || {})[c + '||' + it] || (LK.last || {})[c]; if (!hit) return;
-  [['po', hit.po], ['podate', hit.podate], ['rate', hit.rate], ['loc', hit.loc]].forEach(([k, v]) => { if (!inp(k).value && v !== undefined && v !== '') inp(k).value = v; });
-  if (!it && hit.item) inp('item').value = hit.item;
-  calc();
-}
-inp('cust').addEventListener('change', autofill); inp('item').addEventListener('change', autofill);
-
-function readForm() {
-  const r = {}; F.forEach(f => r[f.k] = inp(f.k).value.trim()); return r;
-}
-function validate(r) {
-  if (!r.item) return ['item', 'Item is required.'];
-  if (!r.truck) return ['truck', 'Truck No is required.'];
-  if (!r.ddate) return ['ddate', 'Delivery Date is required.'];
-  if (!r.cust) return ['cust', 'Customer Name is required.'];
-  if (!(Number(r.sw) > 0)) return ['sw', 'S. Weight (Kg) must be greater than 0.'];
-  return null;
+  const p = inp(K().lastKey).value.trim(), it = inp('item').value.trim(); if (!p) return;
+  const hit = (LK.last || {})[p + '||' + it] || (LK.last || {})[p]; if (!hit) return;
+  Object.entries(hit).forEach(([k, v]) => { if (k !== 'item' && inp(k) && !inp(k).value && v !== undefined && v !== '') inp(k).value = v; });
+  if (!it && hit.item) inp('item').value = hit.item; calc();
 }
 $('f').addEventListener('submit', async e => {
   e.preventDefault();
-  const rec = readForm(), bad = validate(rec);
+  const rec = readForm(), bad = K().ok(rec);
   if (bad) { toast(bad[1], true); inp(bad[0]).focus(); return; }
-  if (!editing && rec.challan && rows.some(r => String(r.v.challan) === rec.challan && r.v.ddate === rec.ddate) &&
-      !confirm('An entry with Challan No ' + rec.challan + ' on this date already exists. Save anyway?')) return;
+  const dk = K().dateKey, refK = kind === 'sales' ? 'challan' : 'ref';
+  if (!editing && rec[refK] && rows.some(r => String(r.v[refK]) === rec[refK] && r.v[dk] === rec[dk]) && !confirm('An entry with ' + rec[refK] + ' on this date already exists. Save anyway?')) return;
   busy(true);
   try {
-    let res;
-    if (editing) res = await call('update', {row: editing.row, sig: editing.sig, record: rec});
-    else res = await call('create', {record: rec});
-    toast(editing ? 'Entry updated' : 'Entry saved to ' + res.tab);
-    const wasEdit = !!editing, saved = rec.ddate.slice(0, 7);
-    if (month && saved !== month) { month = saved; $('mon').value = saved; }
-    resetForm(wasEdit);
-    await Promise.all([loadList(), wasEdit ? Promise.resolve() : loadLookups()]);
-    if (!wasEdit) inp('truck').focus({preventScroll:true});
-  } catch (err) { toast(err.message, true); banner(err.message, 'err'); }
-  finally { busy(false); }
+    const was = !!editing, res = await call(was ? 'update' : 'create', was ? {row: editing.row, sig: editing.sig, record: rec} : {record: rec});
+    toast(was ? 'Entry updated' : 'Entry saved to ' + res.tab);
+    const m = rec[dk].slice(0, 7); if (month && m !== month) { month = m; $('mon').value = m; }
+    resetForm(was); await Promise.all([loadList(), was ? 0 : loadLookups()]);
+  } catch (err) { toast(err.message, true); banner(err.message, 'err'); } finally { busy(false); }
 });
 
-/* ---------- delete ---------- */
+/* ---------- delete (admin) ---------- */
 let delRec = null;
-function askDelete(rec) {
-  delRec = rec;
-  $('dkv').innerHTML = `<b>${esc(rec.d.item)}</b> · ${esc(rec.d.truck)}<br>${esc(rec.d.cust)} · ${esc(rec.d.ddate)}<br>Challan ${esc(rec.d.challan || '—')} · ${esc(rec.d.sw)} Kg`;
-  $('dlg').showModal();
-}
+function askDelete(rec) { delRec = rec; $('dkv').innerHTML = K().del(rec); $('dlg').showModal(); }
 $('dno').onclick = () => $('dlg').close();
 $('dyes').onclick = async () => {
   if (!delRec) return; $('dyes').disabled = true;
-  try {
-    await call('delete', {row: delRec.row, sig: delRec.sig});
-    $('dlg').close(); toast('Entry deleted');
-    if (editing && editing.row === delRec.row) resetForm(true);
-    await loadList();
-  } catch (err) { $('dlg').close(); toast(err.message, true); banner(err.message, 'err'); }
-  finally { $('dyes').disabled = false; delRec = null; }
+  try { await call('delete', {row: delRec.row, sig: delRec.sig}); $('dlg').close(); toast('Entry deleted'); if (editing && editing.row === delRec.row) resetForm(true); await loadList(); }
+  catch (err) { $('dlg').close(); toast(err.message, true); banner(err.message, 'err'); } finally { $('dyes').disabled = false; delRec = null; }
 };
 setTimeout(() => { if (document.documentElement.classList.contains('auth-pending')) $('gateMsg').innerHTML = 'Couldn’t verify your sign-in. <a href="login.html">Go to sign in</a>'; }, 10000);
 </script>

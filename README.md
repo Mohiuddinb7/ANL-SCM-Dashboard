@@ -70,3 +70,22 @@ Roles are decided on the **server** (the Apps Script), not in the browser, so a 
 ### Important limits (please read)
 - The dashboard still reads its data directly from the Google Sheet in the browser, so the sheet is "Anyone with the link can view". Role routing hides the dashboard from collectors and fully protects the entry API, but **anyone who knows the sheet link can still open the sheet itself**. For real confidentiality: make the sheet private and let the dashboard read through the Apps Script (`APPS_SCRIPT_URL` in `index.html` is already prepared for this).
 - The dashboard currently reads the **Supply Details <Mon>'<yy>** tabs. New Master Sales rows appear there only if those tabs are fed from Master Sales.
+
+---
+
+## UPDATE: Sales + Purchase entry, dashboard fed by Apps Script
+
+**Two tables, full CRUD** – `entry.html` now has **Sales** and **Purchase** tabs (Create / Read / Update / Delete):
+| Tab | Sheet tab it writes | Form fields |
+|---|---|---|
+| Sales | **Master Sales Data** (found by gid `1908194160`, or by the name *Master Sales Data* / *Master Sales*) | Item, Truck No, Delivery Date, Challan No, Bag PCS, Customer, WO/PO No, WO/PO Date, WO/PO Rate, S. Weight, R. Weight, Supply Location |
+| Purchase | **Master Purchase Data** (found by name) | Purchase Date, Item, Supplier, Invoice/Challan No, Quantity, Rate, Amount (auto = Qty × Rate if blank), Remarks |
+
+- Columns are found by **header name**, so the order in your sheet does not matter. If *Master Purchase Data* is completely empty, the script writes the header row for you. If it has its own headings, they are matched (Date / Item / Supplier / Qty / Rate / Amount / Remarks and common variants). Two columns, **Entered By** and **Entered At**, are added at the right the first time.
+- If the **Amount** (or Sales Value) column in your sheet is a formula, the script copies the formula down and never overwrites it.
+- **Dashboard reads through Apps Script** (`dash_sales`, `dash_purchase`): Sales dashboard = Master Sales Data; Purchase dashboard = Master Purchase Data. Sales value = Sales Value column if present, otherwise S. Weight × WO/PO Rate. Only admin and management tokens are accepted, so you can now make the Google Sheet **private**.
+- Until `API_URL` is set in `firebase-config.js`, the dashboard falls back to the old public-sheet method.
+
+**Settings at the top of `Code.gs`:** `ROLES`; `COLLECTOR_CAN_PURCHASE` (default `false`: purchase is admin-only); `PURCHASE_QTY_UNIT` (`'Kg'` or `'MT'`, must match your quantity column).
+
+**Re-deploy:** paste the new `Code.gs` → Deploy → Manage deployments → ✏️ → New version → Deploy (the URL stays the same). Upload `index.html`, `entry.html`, `firebase-config.js`.
