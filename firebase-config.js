@@ -25,7 +25,7 @@ export {
 };
 
 /* ====== PASTE your deployed Apps Script web-app URL here (ends with /exec) ====== */
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxXcExq_IJvk5JiisafqEKXnHSIsYc-uSa8vnMTSAcWpn61p264esp4rtRSeakz6wNo/exec';
+export const API_URL = 'https://script.google.com/macros/s/AKfycbyJdxVPwKXSPEih9Nq913X7x_CyD9T1mRYp6x-UJn3lRyDHV5VILD6u1xcuklk4QR0d/exec';
 /* ================================================================================ */
 export const apiReady = () => /^https:\/\/script\.google\.com\//.test(API_URL);
 

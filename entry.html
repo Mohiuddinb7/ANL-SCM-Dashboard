@@ -171,13 +171,14 @@ const KINDS = {
        {k:'po',l:'WO / PO No',t:'text'},{k:'podate',l:'WO / PO Date',t:'date'},{k:'rate',l:'WO / PO Rate',t:'number',step:'any',mode:'decimal'},
        {k:'sw',l:'S. Weight (Kg)',t:'number',step:'any',mode:'decimal',req:1},{k:'rw',l:'R. Weight (Kg)',t:'number',step:'any',mode:'decimal'},{k:'loc',l:'Supply Location',t:'text',list:'loc',full:1}],
     ok:r => !r.item ? ['item','Item is required.'] : !r.truck ? ['truck','Truck No is required.'] : !r.ddate ? ['ddate','Delivery Date is required.'] : !r.cust ? ['cust','Customer Name is required.'] : !(Number(r.sw) > 0) ? ['sw','S. Weight (Kg) must be greater than 0.'] : null},
-  purchase: {title:'Master Purchase Data', dateKey:'pdate', total:r => Number(r.v.amt) || 0, totalTxt:' BDT', keep:['pdate','item','sup','rate'],
-    hint:v => ['Amount (Quantity × Rate)', (Number(v.qty) || 0) * (Number(v.rate) || 0)], lastKey:'sup', num:['qty','rate','amt'],
-    chk:'Keep supplier & rate for the next entry', del:r => `<b>${esc(r.d.item)}</b> · ${esc(r.d.sup)}<br>${esc(r.d.pdate)} · Ref ${esc(r.d.ref || '—')}<br>${esc(r.d.qty)} · ${esc(r.d.amt)}`,
-    F:[{k:'pdate',l:'Purchase Date',t:'date',req:1},{k:'item',l:'Item',t:'text',list:'item',req:1},{k:'sup',l:'Supplier',t:'text',list:'sup',req:1,full:1},
-       {k:'ref',l:'Invoice / Challan No',t:'text'},{k:'qty',l:'Quantity',t:'number',step:'any',mode:'decimal',req:1},{k:'rate',l:'Rate',t:'number',step:'any',mode:'decimal'},
-       {k:'amt',l:'Amount (BDT) – auto if blank',t:'number',step:'any',mode:'decimal'},{k:'rem',l:'Remarks',t:'text',full:1}],
-    ok:r => !r.pdate ? ['pdate','Purchase Date is required.'] : !r.item ? ['item','Item is required.'] : !r.sup ? ['sup','Supplier is required.'] : !(Number(r.qty) > 0) ? ['qty','Quantity must be greater than 0.'] : null}
+  purchase: {title:'Master Purchase Data', dateKey:'pdate', total:r => (Number(r.v.rw) || Number(r.v.cw) || 0) / 1000, totalTxt:' MT', keep:['item','pdate','sup','po','podate','rate','loc'],
+    hint:v => ['Purchase value (R. Weight × Rate)', (Number(v.rw) || Number(v.cw) || 0) * (Number(v.rate) || 0)], lastKey:'sup', num:['bags','rate','cw','rw'],
+    chk:'Keep supplier & PO details for the next entry', del:r => `<b>${esc(r.d.item)}</b> · ${esc(r.d.truck)}<br>${esc(r.d.sup)} · ${esc(r.d.pdate)}<br>Challan ${esc(r.d.challan || '—')} · ${esc(r.d.rw || r.d.cw)} Kg`,
+    F:[{k:'item',l:'Item',t:'text',list:'item',req:1,full:1},{k:'truck',l:'Truck No',t:'text',list:'truck',req:1},{k:'pdate',l:'Purchase Date',t:'date',req:1},
+       {k:'challan',l:'Challan No',t:'text'},{k:'bags',l:'Bag PCS',t:'number',step:'1',mode:'numeric'},{k:'sup',l:'Supplier Name',t:'text',list:'sup',req:1,full:1},
+       {k:'po',l:'WO / PO No',t:'text'},{k:'podate',l:'WO / PO Date',t:'date'},{k:'rate',l:'WO / PO Rate',t:'number',step:'any',mode:'decimal'},
+       {k:'cw',l:'C. Weight (Kg)',t:'number',step:'any',mode:'decimal'},{k:'rw',l:'R. Weight (Kg)',t:'number',step:'any',mode:'decimal'},{k:'loc',l:'R. Location',t:'text',list:'loc',full:1}],
+    ok:r => !r.item ? ['item','Item is required.'] : !r.truck ? ['truck','Truck No is required.'] : !r.pdate ? ['pdate','Purchase Date is required.'] : !r.sup ? ['sup','Supplier Name is required.'] : !(Number(r.cw) > 0 || Number(r.rw) > 0) ? ['cw','C. Weight or R. Weight (Kg) must be greater than 0.'] : null}
 };
 let ROLE = '', user = null, KS = ['sales'], kind = 'sales', rows = [], LB = {}, LK = {lists:{}, last:{}}, editing = null, month = '';
 const K = () => KINDS[kind], inp = k => $('f_' + k);
@@ -186,7 +187,7 @@ const toast = (m, err) => { const t = $('toast'); t.textContent = m; t.className
 const banner = (m, k) => { const b = $('banner'); b.textContent = m || ''; b.className = 'banner' + (m ? ' on ' + (k || 'warn') : ''); };
 const busy = on => { $('save').disabled = on; $('save').textContent = on ? 'Saving…' : (editing ? 'Update entry' : 'Save entry'); };
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-const lbl = f => (kind === 'purchase' && LB[f.k] && ['qty','rate'].includes(f.k)) ? LB[f.k] : f.l;
+const lbl = f => f.l;
 
 /* ---------- auth ---------- */
 onAuthStateChanged(auth, async u => {
@@ -228,7 +229,7 @@ async function loadLookups() {
 }
 async function loadList() {
   $('tb').innerHTML = '<tbody><tr><td class="empty">Loading…</td></tr></tbody>';
-  try { const r = await call('list', {month}); rows = r.rows || []; LB = r.labels || {}; banner(''); $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || K().title)) + (month ? ' · ' + month : ' · all months'); if (kind === 'purchase') document.querySelectorAll('#fg label').forEach((l, i) => { l.firstChild.textContent = lbl(K().F[i]); }); }
+  try { const r = await call('list', {month}); rows = r.rows || []; LB = r.labels || {}; banner(''); $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || K().title)) + (month ? ' · ' + month : ' · all months'); }
   catch (e) { rows = []; banner(e.message, 'err'); }
   renderTable();
 }
@@ -280,7 +281,7 @@ $('f').addEventListener('submit', async e => {
   e.preventDefault();
   const rec = readForm(), bad = K().ok(rec);
   if (bad) { toast(bad[1], true); inp(bad[0]).focus(); return; }
-  const dk = K().dateKey, refK = kind === 'sales' ? 'challan' : 'ref';
+  const dk = K().dateKey, refK = 'challan';
   if (!editing && rec[refK] && rows.some(r => String(r.v[refK]) === rec[refK] && r.v[dk] === rec[dk]) && !confirm('An entry with ' + rec[refK] + ' on this date already exists. Save anyway?')) return;
   busy(true);
   try {
