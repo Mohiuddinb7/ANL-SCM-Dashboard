@@ -640,11 +640,11 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 /* ===== Fixed top bar: header + page tabs stay visible; compact while scrolling ===== */
 .stickytop{position:relative!important;top:auto!important;display:block!important;margin:0!important;padding:0!important;background:transparent!important}
 .stickytop .maintabs{position:relative!important;top:auto!important;box-shadow:none!important}
-.stickytop.fixed{position:fixed!important;top:0;left:0;right:0;z-index:100;background:var(--bg)!important;box-shadow:0 10px 18px rgba(30,60,35,.14);
+.stickytop.fixed{position:fixed!important;top:0!important;left:0;right:0;z-index:100;background:var(--bg)!important;box-shadow:0 10px 18px rgba(30,60,35,.14);
   padding:max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 6px max(12px,env(safe-area-inset-left))!important}
 .stickytop.fixed>*{max-width:1320px;margin-left:auto;margin-right:auto}
-.stickytop.fixed header.top{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"brand controls"!important;padding:8px 14px 8px 26px!important;row-gap:0;margin-bottom:6px!important}
-.stickytop.fixed .period,.stickytop.fixed .brand .sub,.stickytop.fixed .controls .chip{display:none!important}
+.stickytop.fixed header.top{grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"brand period controls"!important;column-gap:14px;padding:8px 14px 8px 26px!important;row-gap:0;margin-bottom:6px!important}
+.stickytop.fixed .brand .sub,.stickytop.fixed .controls .chip{display:none!important}
 .stickytop.fixed .brand{gap:12px;min-width:0}
 .stickytop.fixed .brand img{height:38px}
 .stickytop.fixed .brand .div{display:none}
@@ -654,6 +654,20 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 .stickytop.fixed .maintabs{margin:0!important;padding:4px;flex-wrap:nowrap;overflow-x:auto}
 .stickytop.fixed .maintabs button{height:36px;font-size:13.5px;flex:1 0 auto;white-space:nowrap;padding:0 14px}
 @media (max-width:560px){.stickytop.fixed #refresh{font-size:0;gap:0;padding:0 12px}}
+/* Fixed bar: opaque all the way to the top edge (nothing shows through), compact Report Period beside the name */
+.stickytop.fixed::before{content:"";position:absolute;left:0;right:0;top:-60px;height:60px;background:var(--bg);pointer-events:none}
+.stickytop.fixed header.top .period{grid-area:period;justify-self:center;display:inline-flex!important;align-items:center;gap:8px;margin:0!important;padding:3px 12px;border-radius:10px;width:auto;max-width:100%}
+.stickytop.fixed header.top .period svg{width:17px;height:17px}
+.stickytop.fixed header.top .period small{font-size:9.5px;letter-spacing:.07em;line-height:1.15}
+.stickytop.fixed header.top .period b{font-size:12.5px;line-height:1.25}
+.stickytop.fixed header.top .period:empty{display:none!important}
+@media (max-width:760px){
+  .stickytop.fixed header.top{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"brand controls" "period period"!important;row-gap:6px}
+  .stickytop.fixed header.top .period{justify-self:stretch;justify-content:center;padding:3px 10px}
+  .stickytop.fixed header.top .period small{display:none}
+  .stickytop.fixed header.top .period>span{flex-direction:row}
+}
+
 </style>
 </head>
 <body>
