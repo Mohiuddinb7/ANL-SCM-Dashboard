@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#33552b">
+<title>Agrigate Network Ltd. | SCM Data Entry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('auth-pending');</script>
+<style>
+:root{
+  --bg:#edf0ec; --surface:#ffffff; --ink:#16231c; --muted:#65746b; --line:#dbe2dc; --soft:#f4f7f4; --field:#f6f8f6;
+  --green:#658b2e; --gold:#ccd065; --red:#b5432f; --band:#33552b; --focus:rgba(101,139,46,.28);
+  --font:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e1612; --surface:#16211b; --ink:#e7eee9; --muted:#93a399; --line:#2a3830; --soft:#1b2821; --field:#1b2821; --green:#8fbf4f; --red:#e57a66; --focus:rgba(143,191,79,.30);}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14.5px;line-height:1.45;font-variant-numeric:tabular-nums}
+html.auth-pending .page{display:none}
+#gate{display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--bg);color:var(--muted);font-weight:600;z-index:50}
+html.auth-pending #gate{display:flex}
+#gate i{width:30px;height:30px;border-radius:50%;border:3px solid var(--gold);border-top-color:var(--green);animation:r .8s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+
+.page{max-width:1360px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-left)) 48px max(16px,env(safe-area-inset-right))}
+.bar{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--line);border-bottom:5px solid var(--gold);border-radius:16px;padding:12px 18px;box-shadow:0 8px 24px rgba(30,60,35,.08)}
+.bar .logo{background:#fff;border-radius:12px;padding:4px 8px;display:flex;flex:none}
+.bar .logo img{height:46px;width:auto;display:block}
+.bar h1{margin:0;font-size:20px;line-height:1.2;color:#33552b;font-weight:700}
+@media (prefers-color-scheme:dark){.bar h1{color:#cfe6a8}}
+.bar .sub{color:var(--muted);font-size:13px}
+.bar .sp{flex:1}
+.who{color:var(--muted);font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button,.btn{font-family:inherit;font-size:14px;font-weight:600;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:hover,.btn:hover{background:var(--soft)}
+button.primary,.btn.primary{background:#658b2e;border-color:#658b2e;color:#fff}
+button.primary:hover,.btn.primary:hover{filter:brightness(1.07);background:#658b2e}
+button.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line))}
+button:disabled{opacity:.6;cursor:wait}
+button svg,.btn svg{width:17px;height:17px;flex:none}
+
+.banner{display:none;margin:14px 0 0;padding:12px 16px;border-radius:12px;font-weight:600;border:1px solid}
+.banner.on{display:block}
+.banner.warn{color:#8a5a00;background:#fff6dc;border-color:#ecd28a}
+.banner.err{color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent);border-color:color-mix(in srgb,var(--red) 35%,transparent)}
+
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:16px 0}
+.toolbar label{font-size:12.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
+input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:42px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 4px var(--focus);background:var(--surface)}
+.toolbar input[type=month]{width:170px}
+.toolbar input[type=search]{width:240px;max-width:100%}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid #d6dccf;background:#f1f4d3;color:#33552b;font-size:13px;font-weight:700}
+@media (prefers-color-scheme:dark){.chip{background:#26301b;border-color:#3a4a28;color:#cfe6a8}}
+
+.grid{display:grid;grid-template-columns:minmax(330px,420px) minmax(0,1fr);gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(30,60,35,.06);overflow:hidden}
+.card>h2{margin:0;padding:14px 18px;font-size:15px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#33552b;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+@media (prefers-color-scheme:dark){.card>h2{color:#cfe6a8}}
+.card>h2 .tag{font-size:11px;text-transform:none;letter-spacing:0;background:var(--gold);color:#33411a;padding:3px 10px;border-radius:999px}
+.form{padding:16px 18px 18px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px 12px}
+.fg .full{grid-column:1/-1}
+.fg label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 5px}
+.fg label b{color:var(--red)}
+.hint{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--soft);border:1px dashed var(--line);color:var(--muted);font-size:13px}
+.hint b{color:var(--ink)}
+.chkrow{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:13px;color:var(--muted);font-weight:500}
+.chkrow input{width:17px;height:17px;accent-color:var(--green)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.actions .primary{flex:1 1 160px;height:46px;font-size:15px}
+
+.scroll{overflow:auto;max-height:calc(100vh - 230px);min-height:200px}
+table{border-collapse:collapse;width:100%;white-space:nowrap}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;z-index:2;background:var(--soft);font-size:12.5px;font-weight:600;color:var(--muted)}
+td.n,th.n{text-align:right}
+tbody tr:nth-child(even){background:color-mix(in srgb,var(--soft) 55%,transparent)}
+tbody tr:hover{background:var(--soft)}
+tbody tr.sel{outline:2px solid var(--green);outline-offset:-2px}
+td.act,th.act{position:sticky;right:0;background:var(--surface);z-index:1;text-align:right;box-shadow:-8px 0 8px -8px rgba(0,0,0,.12)}
+th.act{background:var(--soft);z-index:3}
+td.act button{height:32px;padding:0 10px;font-size:13px}
+td.act button+button{margin-left:6px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+
+dialog{border:1px solid var(--line);border-radius:16px;padding:22px;max-width:420px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(10,20,14,.5)}
+dialog h3{margin:0 0 8px;font-size:18px}
+dialog p{margin:0 0 16px;color:var(--muted)}
+dialog .kv{background:var(--soft);border-radius:10px;padding:10px 12px;margin:0 0 16px;font-size:13.5px}
+dialog .row{display:flex;gap:10px;justify-content:flex-end}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#16231c;color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:all .25s;z-index:60;max-width:calc(100% - 32px)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.err{background:#a23a27}
+
+@media (max-width:1000px){ .grid{grid-template-columns:1fr} .scroll{max-height:70vh} }
+@media (max-width:560px){
+  .page{padding-top:10px}
+  .bar{padding:10px 12px;gap:10px;flex-wrap:wrap}
+  .bar h1{font-size:17px}
+  .who{display:none}
+  .fg{grid-template-columns:1fr}
+  .toolbar input[type=month],.toolbar input[type=search]{width:100%}
+  .toolbar label{width:100%}
+  input,select{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div id="gate" role="status"><i></i><span id="gateMsg">Checking sign-in…</span></div>
+<div class="page">
+  <header class="bar">
+    <div class="logo"><img src="logo.png" alt="Agrigate"></div>
+    <div><h1>SCM Data Entry</h1><div class="sub">Supply Details · writes straight to the Google Sheet</div></div>
+    <div class="sp"></div>
+    <span class="who" id="who"></span>
+    <a class="btn" href="index.html" title="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Dashboard</a>
+    <button id="out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+  </header>
+
+  <div id="banner" class="banner" role="alert"></div>
+
+  <div class="toolbar">
+    <label>Month <input type="month" id="mon"></label>
+    <input type="search" id="q" placeholder="Search truck, customer, challan, PO…" aria-label="Search">
+    <button id="reload" title="Reload from the sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v6h-6"/></svg>Reload</button>
+    <button id="new" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New entry</button>
+    <span class="chip" id="cnt">—</span>
+  </div>
+
+  <div class="grid">
+    <section class="card" id="formCard" aria-labelledby="ft">
+      <h2><span id="ft">New entry</span><span class="tag" id="ftag" hidden>Editing</span></h2>
+      <form class="form" id="f" novalidate autocomplete="off">
+        <div class="fg" id="fg"></div>
+        <div class="hint" id="calc">Supply value (S. Weight × Rate): <b>—</b></div>
+        <label class="chkrow" id="keepRow"><input type="checkbox" id="keep" checked> Keep customer &amp; PO details for the next entry</label>
+        <div class="actions">
+          <button type="submit" class="primary" id="save">Save entry</button>
+          <button type="button" id="cancel" hidden>Cancel edit</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="lt">
+      <h2><span id="lt">Entries</span></h2>
+      <div class="scroll"><table id="tb"></table></div>
+    </section>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h3>Delete this entry?</h3>
+  <p>It will be removed from the Google Sheet. This cannot be undone.</p>
+  <div class="kv" id="dkv"></div>
+  <div class="row"><button id="dno">Keep it</button><button id="dyes" class="danger">Delete</button></div>
+</dialog>
+<div id="toast" role="status"></div>
+<datalist id="dlItem"></datalist><datalist id="dlCust"></datalist><datalist id="dlLoc"></datalist><datalist id="dlTruck"></datalist>
+
+<script type="module">
+import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
+
+/* ====== PASTE your deployed Apps Script web-app URL here (ends with /exec) ====== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxlcE-H6PrhHGFrvgy3Tqyapxrg-NMX9QK8PAcNcy-gd5pWN923lKrizTXgMh2lfN0x/exec';
+/* ================================================================================= */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+
+/* form fields (same order as the sheet) */
+const F = [
+  {k:'item',    l:'Item',            t:'text',   list:'dlItem', req:1, full:1},
+  {k:'truck',   l:'Truck No',        t:'text',   list:'dlTruck', req:1},
+  {k:'ddate',   l:'Delivery Date',   t:'date',   req:1},
+  {k:'challan', l:'Challan No',      t:'text'},
+  {k:'bags',    l:'Bag PCS',         t:'number', step:'1', mode:'numeric'},
+  {k:'cust',    l:'Customer Name',   t:'text',   list:'dlCust', req:1, full:1},
+  {k:'po',      l:'WO / PO No',      t:'text'},
+  {k:'podate',  l:'WO / PO Date',    t:'date'},
+  {k:'rate',    l:'WO / PO Rate',    t:'number', step:'any', mode:'decimal'},
+  {k:'sw',      l:'S. Weight (Kg)',  t:'number', step:'any', mode:'decimal', req:1},
+  {k:'rw',      l:'R. Weight (Kg)',  t:'number', step:'any', mode:'decimal'},
+  {k:'loc',     l:'Supply Location', t:'text',   list:'dlLoc', full:1}
+];
+$('fg').innerHTML = F.map(f => `<div class="${f.full ? 'full' : ''}"><label for="f_${f.k}">${f.l}${f.req ? ' <b>*</b>' : ''}</label>` +
+  `<input id="f_${f.k}" name="${f.k}" type="${f.t}"${f.step ? ` step="${f.step}"` : ''}${f.mode ? ` inputmode="${f.mode}"` : ''}${f.list ? ` list="${f.list}"` : ''} autocomplete="off"></div>`).join('');
+const inp = k => $('f_' + k);
+
+let user = null, rows = [], LK = {items:[], custs:[], locs:[], trucks:[], last:{}}, editing = null, month = '';
+
+/* ---------- helpers ---------- */
+function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'on' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = '', err ? 5000 : 2600); }
+function banner(msg, kind) { const b = $('banner'); b.textContent = msg || ''; b.className = 'banner' + (msg ? ' on ' + (kind || 'warn') : ''); }
+function busy(on) { $('save').disabled = on; $('save').textContent = on ? 'Saving…' : (editing ? 'Update entry' : 'Save entry'); }
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+async function call(action, payload = {}) {
+  if (!/^https:\/\/script\.google\.com\//.test(API_URL)) throw new Error('API_URL is not set in entry.html yet. See README step "Data entry".');
+  const token = await user.getIdToken();
+  let r;
+  try { r = await fetch(API_URL, {method:'POST', body:JSON.stringify({action, token, ...payload})}); }   // text/plain body: no CORS pre-flight
+  catch (e) { throw new Error('Network error. Check your connection and the Apps Script deployment (access must be "Anyone").'); }
+  let j; try { j = await r.json(); } catch (e) { throw new Error('The API did not return JSON. Re-deploy the Apps Script as a Web app (Anyone).'); }
+  if (!j.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+/* ---------- auth ---------- */
+onAuthStateChanged(auth, u => {
+  if (!u) { location.replace('login.html'); return; }
+  user = u; document.documentElement.classList.remove('auth-pending');
+  $('who').textContent = u.email || ''; $('who').title = u.email || '';
+  start();
+});
+$('out').onclick = () => signOut(auth).finally(() => location.replace('login.html'));
+
+/* ---------- loading ---------- */
+async function start() {
+  const d = new Date(); month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  $('mon').value = month; resetForm(true);
+  if (!/^https:\/\/script\.google\.com\//.test(API_URL)) { banner('Setup needed: paste your Apps Script web-app URL into API_URL inside entry.html (see README).', 'warn'); renderTable(); return; }
+  await Promise.all([loadLookups(), loadList()]);
+}
+async function loadLookups() {
+  try {
+    LK = await call('lookups');
+    const fill = (id, arr) => $(id).innerHTML = (arr || []).map(v => `<option value="${esc(v)}">`).join('');
+    fill('dlItem', LK.items); fill('dlCust', LK.custs); fill('dlLoc', LK.locs); fill('dlTruck', LK.trucks);
+  } catch (e) { banner(e.message, 'err'); }
+}
+async function loadList() {
+  $('tb').innerHTML = '<tbody><tr><td class="empty">Loading…</td></tr></tbody>';
+  try {
+    const r = await call('list', {month});
+    rows = r.rows || [];
+    banner(r.tab ? '' : `There is no "${r.tabName}" tab in the sheet yet. Create it (duplicate last month's tab and clear the rows) before adding entries for this month.`, 'warn');
+    $('lt').textContent = r.tab ? r.tab : 'Entries';
+  } catch (e) { rows = []; banner(e.message, 'err'); }
+  renderTable();
+}
+
+/* ---------- table ---------- */
+function renderTable() {
+  const q = $('q').value.trim().toLowerCase();
+  const list = rows.filter(r => !q || Object.values(r.d).join(' ').toLowerCase().includes(q));
+  const totKg = list.reduce((s, r) => s + (Number(r.v.sw) || 0), 0);
+  $('cnt').textContent = `${list.length} entr${list.length === 1 ? 'y' : 'ies'} · ${fmt(totKg / 1000, 2)} MT`;
+  if (!list.length) { $('tb').innerHTML = `<tbody><tr><td class="empty">${rows.length ? 'No entries match your search.' : 'No entries for this month yet.'}</td></tr></tbody>`; return; }
+  const num = new Set(['bags', 'rate', 'sw', 'rw']);
+  const head = '<thead><tr><th>Sl</th>' + F.map(f => `<th${num.has(f.k) ? ' class="n"' : ''}>${f.l}</th>`).join('') + '<th class="act">Actions</th></tr></thead>';
+  const body = list.slice().reverse().map(r =>
+    `<tr data-row="${r.row}"${editing && editing.row === r.row ? ' class="sel"' : ''}><td>${esc(r.d.sl || '')}</td>` +
+    F.map(f => `<td${num.has(f.k) ? ' class="n"' : ''}>${esc(r.d[f.k] || '')}</td>`).join('') +
+    `<td class="act"><button data-a="edit" data-row="${r.row}">Edit</button><button data-a="del" data-row="${r.row}" class="danger">Delete</button></td></tr>`).join('');
+  $('tb').innerHTML = head + '<tbody>' + body + '</tbody>';
+}
+$('tb').addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const rec = rows.find(r => r.row === +b.dataset.row); if (!rec) return;
+  if (b.dataset.a === 'edit') startEdit(rec); else askDelete(rec);
+});
+$('q').addEventListener('input', renderTable);
+$('mon').addEventListener('change', () => { if ($('mon').value) { month = $('mon').value; if (!editing) inp('ddate').value = inp('ddate').value || ''; loadList(); } });
+$('reload').onclick = async () => { await Promise.all([loadLookups(), loadList()]); toast('Reloaded'); };
+
+/* ---------- form ---------- */
+function calc() {
+  const v = (Number(inp('sw').value) || 0) * (Number(inp('rate').value) || 0);
+  $('calc').innerHTML = 'Supply value (S. Weight × Rate): <b>' + (v ? 'BDT ' + fmt(v, 2) : '—') + '</b>';
+}
+['sw', 'rate'].forEach(k => inp(k).addEventListener('input', calc));
+
+function resetForm(full) {
+  const keep = !full && $('keep').checked;
+  const keepKeys = new Set(keep ? ['item', 'ddate', 'cust', 'po', 'podate', 'rate', 'loc'] : ['ddate']);
+  F.forEach(f => { if (!keepKeys.has(f.k)) inp(f.k).value = ''; });
+  if (!inp('ddate').value) inp('ddate').value = todayISO();
+  editing = null; $('ft').textContent = 'New entry'; $('ftag').hidden = true; $('cancel').hidden = true; $('keepRow').style.display = '';
+  $('save').textContent = 'Save entry'; calc(); renderTable();
+}
+function startEdit(rec) {
+  editing = {row: rec.row, sig: rec.sig, month};
+  F.forEach(f => { const v = rec.v[f.k]; inp(f.k).value = v === undefined || v === null ? '' : v; });
+  $('ft').textContent = 'Edit entry'; $('ftag').hidden = false; $('cancel').hidden = false; $('keepRow').style.display = 'none';
+  $('save').textContent = 'Update entry'; calc(); renderTable();
+  $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); inp('item').focus({preventScroll:true});
+}
+$('cancel').onclick = () => resetForm(true);
+$('new').onclick = () => { resetForm(true); $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); inp('item').focus({preventScroll:true}); };
+
+/* auto-fill PO details from the last entry of the same customer (+ item) */
+function autofill() {
+  if (editing) return;
+  const c = inp('cust').value.trim(), it = inp('item').value.trim(); if (!c) return;
+  const hit = (LK.last || {})[c + '||' + it] || (LK.last || {})[c]; if (!hit) return;
+  [['po', hit.po], ['podate', hit.podate], ['rate', hit.rate], ['loc', hit.loc]].forEach(([k, v]) => { if (!inp(k).value && v !== undefined && v !== '') inp(k).value = v; });
+  if (!it && hit.item) inp('item').value = hit.item;
+  calc();
+}
+inp('cust').addEventListener('change', autofill); inp('item').addEventListener('change', autofill);
+
+function readForm() {
+  const r = {}; F.forEach(f => r[f.k] = inp(f.k).value.trim()); return r;
+}
+function validate(r) {
+  if (!r.item) return ['item', 'Item is required.'];
+  if (!r.truck) return ['truck', 'Truck No is required.'];
+  if (!r.ddate) return ['ddate', 'Delivery Date is required.'];
+  if (!r.cust) return ['cust', 'Customer Name is required.'];
+  if (!(Number(r.sw) > 0)) return ['sw', 'S. Weight (Kg) must be greater than 0.'];
+  return null;
+}
+$('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const rec = readForm(), bad = validate(rec);
+  if (bad) { toast(bad[1], true); inp(bad[0]).focus(); return; }
+  if (!editing && rec.challan && rows.some(r => String(r.v.challan) === rec.challan && r.v.ddate === rec.ddate) &&
+      !confirm('An entry with Challan No ' + rec.challan + ' on this date already exists. Save anyway?')) return;
+  busy(true);
+  try {
+    let res;
+    if (editing) res = await call('update', {month: editing.month, row: editing.row, sig: editing.sig, record: rec});
+    else res = await call('create', {record: rec});
+    toast(editing ? (res.moved ? 'Updated (moved to ' + res.tab + ')' : 'Entry updated') : 'Entry saved to ' + res.tab);
+    const wasEdit = !!editing, saved = rec.ddate.slice(0, 7);
+    if (saved !== month) { month = saved; $('mon').value = saved; }
+    resetForm(wasEdit);
+    await Promise.all([loadList(), wasEdit ? Promise.resolve() : loadLookups()]);
+    if (!wasEdit) inp('truck').focus({preventScroll:true});
+  } catch (err) { toast(err.message, true); banner(err.message, 'err'); }
+  finally { busy(false); }
+});
+
+/* ---------- delete ---------- */
+let delRec = null;
+function askDelete(rec) {
+  delRec = rec;
+  $('dkv').innerHTML = `<b>${esc(rec.d.item)}</b> · ${esc(rec.d.truck)}<br>${esc(rec.d.cust)} · ${esc(rec.d.ddate)}<br>Challan ${esc(rec.d.challan || '—')} · ${esc(rec.d.sw)} Kg`;
+  $('dlg').showModal();
+}
+$('dno').onclick = () => $('dlg').close();
+$('dyes').onclick = async () => {
+  if (!delRec) return; $('dyes').disabled = true;
+  try {
+    await call('delete', {month, row: delRec.row, sig: delRec.sig});
+    $('dlg').close(); toast('Entry deleted');
+    if (editing && editing.row === delRec.row) resetForm(true);
+    await loadList();
+  } catch (err) { $('dlg').close(); toast(err.message, true); banner(err.message, 'err'); }
+  finally { $('dyes').disabled = false; delRec = null; }
+};
+setTimeout(() => { if (document.documentElement.classList.contains('auth-pending')) $('gateMsg').innerHTML = 'Couldn’t verify your sign-in. <a href="login.html">Go to sign in</a>'; }, 10000);
+</script>
+</body>
+</html>
