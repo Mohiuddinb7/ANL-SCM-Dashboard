@@ -174,14 +174,26 @@ input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px var(--field) inset;-webkit
 
 <script type="module">
 import { auth, setPersistence, browserLocalPersistence, browserSessionPersistence,
-         signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from './firebase-config.js';
+         signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, getRole, apiReady } from './firebase-config.js';
 
 const $ = id => document.getElementById(id);
 $('yr').textContent = new Date().getFullYear();
-const go = () => location.replace('index.html');
-
-// Already signed in? Skip straight to the dashboard.
-onAuthStateChanged(auth, u => { if (u) go(); });
+// After login every person goes to their own page: collectors -> data entry, admin / management -> dashboard.
+let routing = false;
+async function route(user) {
+  if (routing) return; routing = true;
+  if (!apiReady()) { location.replace('index.html'); return; }          // access service not configured yet
+  try {
+    const role = await getRole(user);
+    location.replace(role === 'collector' ? 'entry.html' : 'index.html');
+  } catch (e) {
+    routing = false;
+    try { await signOut(auth); } catch (x) {}
+    msg(e.message, 'err'); busy(false);
+  }
+}
+// Already signed in? Skip straight to the right page.
+onAuthStateChanged(auth, u => { if (u) route(u); });
 
 const msg = (t, k) => { const m = $('msg'); m.textContent = t || ''; m.className = 'msg' + (t ? ' ' + k : ''); };
 const busy = on => { $('go').disabled = on; $('go').classList.toggle('load', on); $('goT').textContent = on ? 'Signing in…' : 'Sign in'; $('forgot').disabled = on; };
@@ -207,8 +219,8 @@ $('f').addEventListener('submit', async e => {
   busy(true);
   try {
     await setPersistence(auth, $('remember').checked ? browserLocalPersistence : browserSessionPersistence);
-    await signInWithEmailAndPassword(auth, email, pw);
-    go();
+    const cred = await signInWithEmailAndPassword(auth, email, pw);
+    await route(cred.user);
   } catch (err) {
     msg(ERR[err.code] || ('Could not sign in (' + (err.code || 'unknown error') + ').'), 'err');
     busy(false); $('pw').select();

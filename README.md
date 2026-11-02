@@ -35,27 +35,38 @@ then visit http://localhost:8000/ (`localhost` is authorised in Firebase by defa
 
 ---
 
-## Data entry (add / edit / delete rows in the Google Sheet)
+## Roles: who sees what
 
-`entry.html` is a sign-in-protected form that writes straight into the monthly **Supply Details <Mon>'<yy>** tabs
-of your Master Sales spreadsheet (the same tabs the dashboard reads). It needs a small Google Apps Script backend
-(`apps-script/Code.gs`) because a GitHub Pages site cannot write to Google Sheets by itself.
+| Role | After login goes to | Can do |
+|---|---|---|
+| **admin** (you) | Dashboard | See everything; open the Data Entry page (**+** button); see every row and **who entered it**; create, edit and **delete** any row |
+| **management** | Dashboard | View the dashboard only. No data-entry access |
+| **collector** (data-entry staff) | Data Entry page | Add entries; see and **edit only the entries they entered themselves**. They never see the dashboard and can **never delete** |
 
-### One-time setup
-1. Open the **Master Sales** spreadsheet → **Extensions → Apps Script**. Delete the sample code and paste the whole of `apps-script/Code.gs`.
-2. At the top of the script, put the e-mail(s) allowed to enter data in `ALLOWED_EMAILS` (must match their Firebase login e-mail).
-3. **Deploy → New deployment → type: Web app** · *Execute as:* **Me** · *Who has access:* **Anyone** → Deploy → **Authorize** (it asks for Sheets access and "connect to an external service") → copy the **Web app URL** (ends with `/exec`).
-4. Open `entry.html`, find `API_URL` near the top of the script and paste that URL. Commit/upload.
-5. After any later change to `Code.gs`: **Deploy → Manage deployments → ✏️ → Version: New version → Deploy** (the URL stays the same).
+Roles are decided on the **server** (the Apps Script), not in the browser, so a collector cannot give themselves more rights.
 
-### How it works
-- **Create** – fills the next free row of the tab that matches the *Delivery Date* month (e.g. 1-Nov-26 → `Supply Details Nov'26`). Formats and formulas of the previous row (e.g. a Sales Value column) are copied down, a numeric *Sl No* is continued, and a *Total* line below the data stays below.
-- **Read** – pick a month; the table shows that tab's rows. Customer / item / location lists and the last PO details of a customer are suggested from the 3 newest tabs.
-- **Update** – click *Edit*, change, *Update entry*. If you change the Delivery Date to another month, the row is moved to that month's tab.
-- **Delete** – click *Delete* → confirm. The row is removed from the sheet.
-- Safe edits: before an update/delete the script checks the row still holds the same Item / Truck / Challan / Date; if someone else changed it you are asked to reload.
-- Columns are found by their **header names** (Sl No, Item, Truck No, Delivery Date, Challan No, Bag PCS, Customer Name, WO / PO No, WO / PO Date, WO / PO Rate, S. Weight (Kg), R. Weight (Kg), Supply Location), so extra columns or a different column order are fine.
+### Give people access
+1. **Firebase console → Authentication → Users → Add user** (e-mail + password).
+2. In `apps-script/Code.gs`, add that e-mail (lower-case) to `ROLES` with `'admin'`, `'management'` or `'collector'`, then re-deploy (Deploy → Manage deployments → ✏️ → New version → Deploy).
+3. An e-mail that is not in `ROLES` is signed out with "no access" even if it has a Firebase account.
 
-### Security
-Every request carries the signed-in user's Firebase token; the script verifies it with Firebase and only accepts e-mails in `ALLOWED_EMAILS`. Nobody can write to the sheet from outside the app.
-The month tab must already exist (duplicate last month's tab and clear the rows). New entries appear on the dashboard at its next refresh (auto every 5 minutes, or press Refresh).
+### Data entry (add / edit / delete rows in the Google Sheet)
+`entry.html` writes into the **Master Sales** tab through a small Google Apps Script backend (a GitHub Pages site cannot write to Google Sheets by itself).
+
+**One-time setup**
+1. Open the spreadsheet → **Extensions → Apps Script**. Delete the sample code and paste the whole of `apps-script/Code.gs`.
+2. Edit `ROLES` at the top (your e-mail as `admin`, staff as `collector`, managers as `management`). `MASTER_GID` is already set to your Master Sales tab (`gid=1908194160`).
+3. **Deploy → New deployment → type: Web app** · *Execute as:* **Me** · *Who has access:* **Anyone** → Deploy → **Authorize** → copy the **Web app URL** (ends with `/exec`).
+4. Open **`firebase-config.js`**, paste that URL into `API_URL`, commit/upload. (Until `API_URL` is set, everyone who logs in is sent to the dashboard, as before.)
+
+**How it works**
+- **Create** – fills the next free row of *Master Sales*. Formats and formulas of the previous row are copied down, a numeric *Sl No* is continued, a *Total* line below the data stays below. The script adds two columns at the right of the header the first time: **Entered By** (the user's e-mail) and **Entered At**. That is how "own entries" are recognised. Rows that existed before have no owner, so only the admin sees them.
+- **Read** – the table shows rows of the chosen *delivery month* (or *All months*). Collectors get only their own rows from the server. Suggestions: item / customer / location names (`SHARE_NAME_LISTS`), and a customer's last PO / rate only from the user's own entries.
+- **Update** – *Edit* → *Update entry*. A collector's edit is refused by the server unless the row's *Entered By* is their e-mail.
+- **Delete** – admin only (server-enforced).
+- Before an update/delete the script checks the row still holds the same Item / Truck / Challan / Date; if someone changed it you are asked to reload.
+- Columns are found by **header names** (Sl No, Item, Truck No, Delivery Date, Challan No, Bag PCS, Customer Name, WO / PO No, WO / PO Date, WO / PO Rate, S. Weight (Kg), R. Weight (Kg), Supply Location).
+
+### Important limits (please read)
+- The dashboard still reads its data directly from the Google Sheet in the browser, so the sheet is "Anyone with the link can view". Role routing hides the dashboard from collectors and fully protects the entry API, but **anyone who knows the sheet link can still open the sheet itself**. For real confidentiality: make the sheet private and let the dashboard read through the Apps Script (`APPS_SCRIPT_URL` in `index.html` is already prepared for this).
+- The dashboard currently reads the **Supply Details <Mon>'<yy>** tabs. New Master Sales rows appear there only if those tabs are fed from Master Sales.

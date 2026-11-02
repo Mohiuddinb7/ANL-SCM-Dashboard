@@ -23,10 +23,22 @@ window.__AUTH_READY=new Promise(function(r){window.__authOk=r;});
 setTimeout(function(){ if(document.documentElement.classList.contains('auth-pending')){ var m=document.getElementById('authMsg'); if(m) m.innerHTML='Couldn\u2019t verify your sign-in. <a href="login.html">Go to sign in</a>'; } },10000);
 </script>
 <script type="module">
-import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
-onAuthStateChanged(auth, function(user){
+import { auth, onAuthStateChanged, signOut, getRole, apiReady } from './firebase-config.js';
+onAuthStateChanged(auth, async function(user){
   if(!user){ location.replace('login.html'); return; }
+  var role='admin';                                   // access service not configured yet: behave as before
+  if(apiReady()){
+    try{ role=await getRole(user); }
+    catch(e){
+      var m=document.getElementById('authMsg');
+      m.textContent=e.message+' ';
+      var a1=document.createElement('a'); a1.href='#'; a1.textContent='Sign out'; a1.onclick=function(ev){ ev.preventDefault(); signOut(auth).finally(function(){ location.replace('login.html'); }); };
+      m.appendChild(a1); return;
+    }
+  }
+  if(role==='collector'){ location.replace('entry.html'); return; }   // data-entry staff never see the dashboard
   document.documentElement.classList.remove('auth-pending');
+  var eb=document.getElementById('entryBtn'); if(eb && role!=='admin') eb.style.display='none';   // only the admin opens the entry page from here
   var b=document.getElementById('logoutBtn');
   if(b){ b.title='Sign out ('+(user.email||'')+')'; b.onclick=function(){ signOut(auth).finally(function(){ location.replace('login.html'); }); }; }
   window.__authOk(user);

@@ -36,6 +36,7 @@ html.auth-pending #gate{display:flex}
 @media (prefers-color-scheme:dark){.bar h1{color:#cfe6a8}}
 .bar .sub{color:var(--muted);font-size:13px}
 .bar .sp{flex:1}
+body[data-role=collector] .adm{display:none!important}
 .who{color:var(--muted);font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button,.btn{font-family:inherit;font-size:14px;font-weight:600;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 button:hover,.btn:hover{background:var(--soft)}
@@ -119,17 +120,18 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end}
 <div class="page">
   <header class="bar">
     <div class="logo"><img src="logo.png" alt="Agrigate"></div>
-    <div><h1>SCM Data Entry</h1><div class="sub">Supply Details · writes straight to the Google Sheet</div></div>
+    <div><h1>SCM Data Entry</h1><div class="sub" id="sub">Master Sales · all entries (administrator view)</div></div>
     <div class="sp"></div>
     <span class="who" id="who"></span>
-    <a class="btn" href="index.html" title="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Dashboard</a>
+    <a class="btn adm" href="index.html" title="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Dashboard</a>
     <button id="out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
   </header>
 
   <div id="banner" class="banner" role="alert"></div>
 
   <div class="toolbar">
-    <label>Month <input type="month" id="mon"></label>
+    <label>Delivery month <input type="month" id="mon"></label>
+    <button id="allm" title="Show every row of Master Sales">All months</button>
     <input type="search" id="q" placeholder="Search truck, customer, challan, PO…" aria-label="Search">
     <button id="reload" title="Reload from the sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v6h-6"/></svg>Reload</button>
     <button id="new" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New entry</button>
@@ -151,7 +153,7 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end}
     </section>
 
     <section class="card" aria-labelledby="lt">
-      <h2><span id="lt">Entries</span></h2>
+      <h2><span id="lt">Master Sales</span></h2>
       <div class="scroll"><table id="tb"></table></div>
     </section>
   </div>
@@ -167,11 +169,7 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end}
 <datalist id="dlItem"></datalist><datalist id="dlCust"></datalist><datalist id="dlLoc"></datalist><datalist id="dlTruck"></datalist>
 
 <script type="module">
-import { auth, onAuthStateChanged, signOut } from './firebase-config.js';
-
-/* ====== PASTE your deployed Apps Script web-app URL here (ends with /exec) ====== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxlcE-H6PrhHGFrvgy3Tqyapxrg-NMX9QK8PAcNcy-gd5pWN923lKrizTXgMh2lfN0x/exec';
-/* ================================================================================= */
+import { auth, onAuthStateChanged, signOut, api, apiReady, getRole } from './firebase-config.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -196,7 +194,7 @@ $('fg').innerHTML = F.map(f => `<div class="${f.full ? 'full' : ''}"><label for=
   `<input id="f_${f.k}" name="${f.k}" type="${f.t}"${f.step ? ` step="${f.step}"` : ''}${f.mode ? ` inputmode="${f.mode}"` : ''}${f.list ? ` list="${f.list}"` : ''} autocomplete="off"></div>`).join('');
 const inp = k => $('f_' + k);
 
-let user = null, rows = [], LK = {items:[], custs:[], locs:[], trucks:[], last:{}}, editing = null, month = '';
+let ROLE = '', user = null, rows = [], LK = {items:[], custs:[], locs:[], trucks:[], last:{}}, editing = null, month = '';
 
 /* ---------- helpers ---------- */
 function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'on' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = '', err ? 5000 : 2600); }
@@ -204,22 +202,24 @@ function banner(msg, kind) { const b = $('banner'); b.textContent = msg || ''; b
 function busy(on) { $('save').disabled = on; $('save').textContent = on ? 'Saving…' : (editing ? 'Update entry' : 'Save entry'); }
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
-async function call(action, payload = {}) {
-  if (!/^https:\/\/script\.google\.com\//.test(API_URL)) throw new Error('API_URL is not set in entry.html yet. See README step "Data entry".');
-  const token = await user.getIdToken();
-  let r;
-  try { r = await fetch(API_URL, {method:'POST', body:JSON.stringify({action, token, ...payload})}); }   // text/plain body: no CORS pre-flight
-  catch (e) { throw new Error('Network error. Check your connection and the Apps Script deployment (access must be "Anyone").'); }
-  let j; try { j = await r.json(); } catch (e) { throw new Error('The API did not return JSON. Re-deploy the Apps Script as a Web app (Anyone).'); }
-  if (!j.ok) throw new Error(j.error || 'Request failed');
-  return j;
-}
+const call = (action, payload = {}) => api(user, action, payload);
 
 /* ---------- auth ---------- */
-onAuthStateChanged(auth, u => {
+onAuthStateChanged(auth, async u => {
   if (!u) { location.replace('login.html'); return; }
-  user = u; document.documentElement.classList.remove('auth-pending');
-  $('who').textContent = u.email || ''; $('who').title = u.email || '';
+  user = u;
+  try { ROLE = apiReady() ? await getRole(u) : 'admin'; }
+  catch (e) {
+    $('gateMsg').textContent = e.message + ' ';
+    const a1 = document.createElement('a'); a1.href = '#'; a1.textContent = 'Sign out';
+    a1.onclick = ev => { ev.preventDefault(); signOut(auth).finally(() => location.replace('login.html')); };
+    $('gateMsg').appendChild(a1); return;
+  }
+  if (ROLE === 'management') { location.replace('index.html'); return; }   // management only sees the dashboard
+  document.body.dataset.role = ROLE;
+  document.documentElement.classList.remove('auth-pending');
+  $('who').textContent = (u.email || '') + ' · ' + ({admin:'Administrator', collector:'Data entry'}[ROLE] || ROLE); $('who').title = u.email || '';
+  if (ROLE === 'collector') { $('sub').textContent = 'You can add entries and edit your own entries'; $('lt').textContent = 'My entries'; }
   start();
 });
 $('out').onclick = () => signOut(auth).finally(() => location.replace('login.html'));
@@ -228,7 +228,7 @@ $('out').onclick = () => signOut(auth).finally(() => location.replace('login.htm
 async function start() {
   const d = new Date(); month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   $('mon').value = month; resetForm(true);
-  if (!/^https:\/\/script\.google\.com\//.test(API_URL)) { banner('Setup needed: paste your Apps Script web-app URL into API_URL inside entry.html (see README).', 'warn'); renderTable(); return; }
+  if (!apiReady()) { banner('Setup needed: paste your Apps Script web-app URL into API_URL inside firebase-config.js (see README).', 'warn'); renderTable(); return; }
   await Promise.all([loadLookups(), loadList()]);
 }
 async function loadLookups() {
@@ -243,8 +243,8 @@ async function loadList() {
   try {
     const r = await call('list', {month});
     rows = r.rows || [];
-    banner(r.tab ? '' : `There is no "${r.tabName}" tab in the sheet yet. Create it (duplicate last month's tab and clear the rows) before adding entries for this month.`, 'warn');
-    $('lt').textContent = r.tab ? r.tab : 'Entries';
+    banner('');
+    $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || 'Master Sales')) + (month ? ' · ' + month : ' · all months');
   } catch (e) { rows = []; banner(e.message, 'err'); }
   renderTable();
 }
@@ -254,23 +254,27 @@ function renderTable() {
   const q = $('q').value.trim().toLowerCase();
   const list = rows.filter(r => !q || Object.values(r.d).join(' ').toLowerCase().includes(q));
   const totKg = list.reduce((s, r) => s + (Number(r.v.sw) || 0), 0);
-  $('cnt').textContent = `${list.length} entr${list.length === 1 ? 'y' : 'ies'} · ${fmt(totKg / 1000, 2)} MT`;
+  const CAP = 500, shown = list.length > CAP;
+  $('cnt').textContent = `${list.length} entr${list.length === 1 ? 'y' : 'ies'} · ${fmt(totKg / 1000, 2)} MT` + (shown ? ` (latest ${CAP} shown)` : '');
   if (!list.length) { $('tb').innerHTML = `<tbody><tr><td class="empty">${rows.length ? 'No entries match your search.' : 'No entries for this month yet.'}</td></tr></tbody>`; return; }
   const num = new Set(['bags', 'rate', 'sw', 'rw']);
-  const head = '<thead><tr><th>Sl</th>' + F.map(f => `<th${num.has(f.k) ? ' class="n"' : ''}>${f.l}</th>`).join('') + '<th class="act">Actions</th></tr></thead>';
-  const body = list.slice().reverse().map(r =>
+  const adm = ROLE === 'admin';
+  const head = '<thead><tr><th>Sl</th>' + F.map(f => `<th${num.has(f.k) ? ' class="n"' : ''}>${f.l}</th>`).join('') + (adm ? '<th>Entered by</th><th>Entered at</th>' : '') + '<th class="act">Actions</th></tr></thead>';
+  const body = list.slice().reverse().slice(0, CAP).map(r =>
     `<tr data-row="${r.row}"${editing && editing.row === r.row ? ' class="sel"' : ''}><td>${esc(r.d.sl || '')}</td>` +
     F.map(f => `<td${num.has(f.k) ? ' class="n"' : ''}>${esc(r.d[f.k] || '')}</td>`).join('') +
-    `<td class="act"><button data-a="edit" data-row="${r.row}">Edit</button><button data-a="del" data-row="${r.row}" class="danger">Delete</button></td></tr>`).join('');
+    (adm ? `<td>${esc(r.d.by || '')}</td><td>${esc(r.d.at || '')}</td>` : '') +
+    `<td class="act"><button data-a="edit" data-row="${r.row}">Edit</button>${adm ? `<button data-a="del" data-row="${r.row}" class="danger">Delete</button>` : ''}</td></tr>`).join('');
   $('tb').innerHTML = head + '<tbody>' + body + '</tbody>';
 }
 $('tb').addEventListener('click', e => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const rec = rows.find(r => r.row === +b.dataset.row); if (!rec) return;
-  if (b.dataset.a === 'edit') startEdit(rec); else askDelete(rec);
+  if (b.dataset.a === 'edit') startEdit(rec); else if (ROLE === 'admin') askDelete(rec);
 });
 $('q').addEventListener('input', renderTable);
-$('mon').addEventListener('change', () => { if ($('mon').value) { month = $('mon').value; if (!editing) inp('ddate').value = inp('ddate').value || ''; loadList(); } });
+$('mon').addEventListener('change', () => { month = $('mon').value || ''; loadList(); });
+$('allm').onclick = () => { month = ''; $('mon').value = ''; loadList(); };
 $('reload').onclick = async () => { await Promise.all([loadLookups(), loadList()]); toast('Reloaded'); };
 
 /* ---------- form ---------- */
@@ -289,7 +293,7 @@ function resetForm(full) {
   $('save').textContent = 'Save entry'; calc(); renderTable();
 }
 function startEdit(rec) {
-  editing = {row: rec.row, sig: rec.sig, month};
+  editing = {row: rec.row, sig: rec.sig};
   F.forEach(f => { const v = rec.v[f.k]; inp(f.k).value = v === undefined || v === null ? '' : v; });
   $('ft').textContent = 'Edit entry'; $('ftag').hidden = false; $('cancel').hidden = false; $('keepRow').style.display = 'none';
   $('save').textContent = 'Update entry'; calc(); renderTable();
@@ -329,11 +333,11 @@ $('f').addEventListener('submit', async e => {
   busy(true);
   try {
     let res;
-    if (editing) res = await call('update', {month: editing.month, row: editing.row, sig: editing.sig, record: rec});
+    if (editing) res = await call('update', {row: editing.row, sig: editing.sig, record: rec});
     else res = await call('create', {record: rec});
-    toast(editing ? (res.moved ? 'Updated (moved to ' + res.tab + ')' : 'Entry updated') : 'Entry saved to ' + res.tab);
+    toast(editing ? 'Entry updated' : 'Entry saved to ' + res.tab);
     const wasEdit = !!editing, saved = rec.ddate.slice(0, 7);
-    if (saved !== month) { month = saved; $('mon').value = saved; }
+    if (month && saved !== month) { month = saved; $('mon').value = saved; }
     resetForm(wasEdit);
     await Promise.all([loadList(), wasEdit ? Promise.resolve() : loadLookups()]);
     if (!wasEdit) inp('truck').focus({preventScroll:true});
@@ -352,7 +356,7 @@ $('dno').onclick = () => $('dlg').close();
 $('dyes').onclick = async () => {
   if (!delRec) return; $('dyes').disabled = true;
   try {
-    await call('delete', {month, row: delRec.row, sig: delRec.sig});
+    await call('delete', {row: delRec.row, sig: delRec.sig});
     $('dlg').close(); toast('Entry deleted');
     if (editing && editing.row === delRec.row) resetForm(true);
     await loadList();

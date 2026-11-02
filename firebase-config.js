@@ -23,3 +23,29 @@ export {
   setPersistence, browserLocalPersistence, browserSessionPersistence,
   signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail
 };
+
+/* ====== PASTE your deployed Apps Script web-app URL here (ends with /exec) ====== */
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxMeAottJP8lXjwBU493TsPzX3sQ2vEGTDBgVY7BuCHyqEHai_63rMAUQa--rTkZn3e/exec';
+/* ================================================================================ */
+export const apiReady = () => /^https:\/\/script\.google\.com\//.test(API_URL);
+
+/* Talks to the Apps Script backend with the signed-in user's Firebase token (the server decides what the user may do). */
+export async function api(user, action, payload = {}) {
+  if (!apiReady()) throw new Error('API_URL is not set in firebase-config.js yet. See README.');
+  const token = await user.getIdToken();
+  let r;
+  try { r = await fetch(API_URL, {method:'POST', body:JSON.stringify({action, token, ...payload})}); }   // text/plain body: no CORS pre-flight
+  catch (e) { throw new Error('Network error. Check your connection and the Apps Script deployment (access must be "Anyone").'); }
+  let j; try { j = await r.json(); } catch (e) { throw new Error('The access service did not answer correctly. Re-deploy the Apps Script as a Web app (Anyone).'); }
+  if (!j.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+/* "admin" | "management" | "collector" - from the server, cached for 5 minutes in this browser tab */
+export async function getRole(user) {
+  const k = 'scm_role_' + user.uid, now = Date.now();
+  try { const c = JSON.parse(sessionStorage.getItem(k) || 'null'); if (c && now - c.t < 300000) return c.r; } catch (e) {}
+  const r = await api(user, 'whoami');
+  try { sessionStorage.setItem(k, JSON.stringify({r:r.role, t:now})); } catch (e) {}
+  return r.role;
+}
