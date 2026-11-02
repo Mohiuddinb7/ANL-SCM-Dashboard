@@ -1019,23 +1019,22 @@ function gvizScript(name,full){
   });
 }
 
-async function loadApi(){
-  $('refresh').classList.add('spin'); setStatus('Loading data from Master Sales Data...'); setLive('load');
-  try{
-    const u=await window.__AUTH_READY, r=await window.__api(u,'dash_sales');
-    DATA=r.rows.map(x=>{ const dt=parseDate(x.iso); return {tab:r.tab,item:x.item,cust:(x.cust||'').trim()||'(blank)',po:cleanPo(x.po)||'(blank)',truck:x.truck,sw:x.sw,rw:x.rw,sales:x.sales,rate:x.rate,
-      iso:dt?`${dt.y}-${pad(dt.m+1)}-${pad(dt.d)}`:'',month:dt?`${dt.y}-${pad(dt.m+1)}`:'',year:dt?String(dt.y):''}; });
-    $('refresh').classList.remove('spin'); buildPerMonths(); buildFilters(); render();
-    const time=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-    setLive('ok',time); $('sheetInfo').classList.add('hidden');
-    setStatus(`<b>${fmt(DATA.length)}</b> rows from <b>${esc(r.tab)}</b>. Updated ${time}.`);
-  }catch(e){ $('refresh').classList.remove('spin'); setLive('off'); setStatus('Could not load data: '+esc(e.message),true); }
-}
 async function load(){
-  if(window.__apiReady&&window.__apiReady()) return loadApi();   // Apps Script (Master Sales Data); old Supply Details path below is the fallback
   $('refresh').classList.add('spin');
   setStatus('Loading data from Google Sheets...'); setLive('load');
-  const raw = await Promise.allSettled(tabs.map(fetchTab));
+  let raw;
+  if(window.__apiReady&&window.__apiReady()){      // Apps Script: one call returns all Supply Details tabs
+    try{
+      const u=await window.__AUTH_READY, r=await window.__api(u,'dash_supply');
+      tabs=r.tabs.map(t=>t.name);
+      raw=r.tabs.map(t=>{ try{
+        const m=t.name.match(TAB_RE), mo=m?MON[m[1].slice(0,3).toLowerCase()]:undefined, exp=mo!==undefined?`20${m[2]}-${pad(mo+1)}`:'';
+        const recs=rowsToRecords(t.values,t.name); recs._used=t.name;
+        recs.forEach(x=>{ x.tab=t.name; if(exp&&!x.month){ x.month=exp; x.year=exp.slice(0,4); } });
+        return {status:'fulfilled',value:recs};
+      }catch(e){ return {status:'rejected',reason:e}; } });
+    }catch(e){ $('refresh').classList.remove('spin'); setLive('off'); setStatus('Could not load data: '+esc(e.message),true); return; }
+  } else raw = await Promise.allSettled(tabs.map(fetchTab));   // fallback until API_URL is set
   const names=[], res=[];
   raw.forEach((r,i)=>{ if(OPT_TABS.has(tabs[i]) && (r.status==='rejected'||!r.value.length)) return; names.push(tabs[i]); res.push(r); });
   const fails=[], rep=[]; DATA=[];
@@ -1744,7 +1743,6 @@ function monthKey(s){
 const mlab=k=>/^\d{4}-\d{2}$/.test(k)?MONN[+k.slice(5)-1]+' '+k.slice(0,4):k;
 let PU_LONG=false;
 async function purchMatrix(){
-  if(window.__apiReady&&window.__apiReady()){ const u=await window.__AUTH_READY, r=await window.__api(u,'dash_purchase'); PU_LONG=true; PU_SRC.used=r.tab; return r.values; }
   let last;
   for(const nm of PU_NAMES){
     try{

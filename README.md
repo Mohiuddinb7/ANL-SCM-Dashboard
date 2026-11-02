@@ -83,9 +83,8 @@ Roles are decided on the **server** (the Apps Script), not in the browser, so a 
 
 - Columns are found by **header name**, so the order in your sheet does not matter. If *Master Purchase Data* is completely empty, the script writes the header row for you. If it has its own headings, they are matched (Date / Item / Supplier / Qty / Rate / Amount / Remarks and common variants). Two columns, **Entered By** and **Entered At**, are added at the right the first time.
 - If the **Amount** (or Sales Value) column in your sheet is a formula, the script copies the formula down and never overwrites it.
-- **Dashboard reads through Apps Script** (`dash_sales`, `dash_purchase`): Sales dashboard = Master Sales Data; Purchase dashboard = Master Purchase Data. Sales value = Sales Value column if present, otherwise S. Weight × WO/PO Rate. Only admin and management tokens are accepted, so you can now make the Google Sheet **private**.
-- Until `API_URL` is set in `firebase-config.js`, the dashboard falls back to the old public-sheet method.
+- **Dashboard** (Truck-Wise Supply Performance) reads the same **Supply Details <Mon>'<yy>** tabs as before (Sep'25 onward). With `API_URL` set, the Apps Script (`dash_supply`, admin + management only) serves those tabs, so the sheet can be private; without it the dashboard falls back to the old public-sheet method. The Purchase and Profit & Loss pages are unchanged. Master Sales Data / Master Purchase Data are used **only by the data-entry form**.
 
-**Settings at the top of `Code.gs`:** `ROLES`; `COLLECTOR_CAN_PURCHASE` (default `false`: purchase is admin-only); `PURCHASE_QTY_UNIT` (`'Kg'` or `'MT'`, must match your quantity column).
+**Settings at the top of `Code.gs`:** `ROLES`; `COLLECTOR_CAN_PURCHASE` (default `false`: purchase is admin-only).
 
 **Re-deploy:** paste the new `Code.gs` → Deploy → Manage deployments → ✏️ → New version → Deploy (the URL stays the same). Upload `index.html`, `entry.html`, `firebase-config.js`.
