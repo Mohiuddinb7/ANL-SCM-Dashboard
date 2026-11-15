@@ -1668,12 +1668,12 @@ function renderPL(){
   const growth=l=>{ const i=D.months.indexOf(l); if(i<1) return null; const p=g(D.months[i-1],'rev'), c=g(l,'rev'); return p?(c-p)/p*100:null; };
   /* Layout: products first, then the total line under them */
   const rows=[]; const R=(lab,k,o={})=>rows.push({lab,k,...o});
-  R('Volume (MT)','rev',{vol:1});
-  D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1,vol:1}));      /* product-wise volume (MT) under the total */
+  D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1,vol:1}));      /* product-wise volume (MT) */
+  R('Total Volume (MT)','rev',{vol:1,bold:1});
   D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
   R('Total Revenue','rev',{bold:1});
   D.subs.filter(s=>s.sec==='cost').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
-  R('Cost of Sales','cogs',{tot:1});
+  R('Total Cost of Sales','cogs',{bold:1});
   R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
   const cell=v=>v==null?'':(v<0?'<span class="bad">'+fmt(v,0)+'</span>':fmt(v,0));
   const cv=(x,l)=>{ if(x.sub){ const e=g(l,'subs').find(y=>y.s===x.sub); return {q:e&&e.q,a:e&&e.a}; }
