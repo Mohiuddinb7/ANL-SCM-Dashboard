@@ -681,6 +681,17 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
   .stickytop.fixed header.top .period>span{flex-direction:row}
 }
 
+/* ===== FIX: Filter panel always on top (regular view + while scrolling) =====
+   Cause: the page tabs (.maintabs, z-index:100) sat above the filter panel (z-index:50) inside the same
+   stacking layer, so the panel slid behind the tabs. Now the header (which holds the filter menu) is
+   layered above the tabs, and the whole top bar is above tables, sticky headers and cards. */
+.stickytop{z-index:1000!important}
+.stickytop.fixed{z-index:1000!important}
+.stickytop header.top{position:relative;z-index:200}
+.stickytop .maintabs{z-index:100}
+.menuwrap{z-index:300}
+.menupanel{z-index:1000!important}
+.perpanel{z-index:1000}
 </style>
 </head>
 <body>
