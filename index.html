@@ -1669,6 +1669,7 @@ function renderPL(){
   /* Layout: products first, then the total line under them */
   const rows=[]; const R=(lab,k,o={})=>rows.push({lab,k,...o});
   R('Volume (MT)','rev',{vol:1});
+  D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1,vol:1}));      /* product-wise volume (MT) under the total */
   D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
   R('Total Revenue','rev',{bold:1});
   D.subs.filter(s=>s.sec==='cost').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
@@ -1681,13 +1682,13 @@ function renderPL(){
   const tv=x=>{ if(x.sub){ return {q:ms.reduce((s,l)=>s+(cv(x,l).q||0),0),a:ms.reduce((s,l)=>s+(cv(x,l).a||0),0)}; }
     if(x.pct) return {q:null,a:pc(S(x.k,'a'),S(x.pct,'a'))}; return {q:S(x.k,'q'),a:S(x.k,'a')}; };
   const vis=rows.filter(x=>{ if(!x.sub) return true; return ms.some(l=>(cv(x,l).a||cv(x,l).q)); });
-  const show=(x,v)=>x.vol?f2(v.q):(x.pct?(v.a!=null?f2(v.a)+'%':''):cell(v.a));
+  const show=(x,v)=>x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):cell(v.a));
   const hd='<thead><tr><th class="l">Particulars (BDT)</th>'+ms.map(p=>`<th class="g">${esc(p)}</th>`).join('')+'<th class="g">Total</th></tr></thead>';
   const body=vis.map(x=>{
     const cls=(x.bold?'hd ':'')+(x.tot?'tot ':'')+(x.it?'pc ':'');
     return `<tr class="${cls}"><td class="l${x.ind?' ind':''}">${esc(x.lab)}</td>${ms.map(l=>`<td class="n">${show(x,cv(x,l))}</td>`).join('')}<td class="n tc">${show(x,tv(x))}</td></tr>`;
   }).join('');
-  const ptxt=(x,v)=>x.vol?f2(v.q):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,0)));
+  const ptxt=(x,v)=>x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,0)));
   PLX={title:$('plT').textContent,sub:'Raw Material (RM) Trading',period:$('plP').textContent,head:['Particulars (BDT)',...ms,'Total'],
     rows:vis.map(x=>({x,cells:[x.lab,...ms.map(l=>ptxt(x,cv(x,l))),ptxt(x,tv(x))]}))};
   $('plTb').innerHTML=hd+'<tbody>'+body+'</tbody>';
