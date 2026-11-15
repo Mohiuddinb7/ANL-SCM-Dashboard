@@ -117,6 +117,9 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end}
 .tabs button{height:42px;padding:0 22px;border-radius:999px;font-size:15px}
 .tabs button[aria-pressed=true]{background:var(--band);border-color:var(--band);color:#fff}
 .bar .sub b{color:var(--ink)}
+.left{display:inline-block;margin-right:8px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;color:#33552b;background:color-mix(in srgb,#658b2e 14%,transparent);white-space:nowrap}
+.left.low{color:#a23a27;background:color-mix(in srgb,#a23a27 12%,transparent)}
+.lock{color:var(--muted);font-size:12.5px;font-weight:600;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -181,7 +184,16 @@ const KINDS = {
     ok:r => !r.item ? ['item','Item is required.'] : !r.truck ? ['truck','Truck No is required.'] : !r.pdate ? ['pdate','Purchase Date is required.'] : !r.sup ? ['sup','Supplier Name is required.'] : !(Number(r.cw) > 0 || Number(r.rw) > 0) ? ['cw','C. Weight or R. Weight (Kg) must be greater than 0.'] : null}
 };
 let ROLE = '', user = null, KS = ['sales'], kind = 'sales', rows = [], LB = {}, LK = {lists:{}, last:{}}, editing = null, month = '';
+const EDIT_WINDOW_MIN = 30;           /* collectors: edit / delete allowed this many minutes after saving (admin: always) */
 const K = () => KINDS[kind], inp = k => $('f_' + k);
+/* Time left (ms) for a collector's own row. The server sends r.left; fallback = Entered At + 30 min. No info => locked (fail-safe). */
+const expiryOf = r => {
+  if (typeof r.left === 'number') return Date.now() + r.left;
+  const t = r.d && r.d.at ? Date.parse(String(r.d.at).replace(' ', 'T')) : NaN;
+  return isNaN(t) ? 0 : t + EDIT_WINDOW_MIN * 60000;
+};
+const canMod = r => ROLE === 'admin' || (ROLE === 'collector' && (r.exp || 0) > Date.now());
+const minsLeft = r => Math.max(1, Math.ceil((r.exp - Date.now()) / 60000));
 const call = (action, payload = {}) => api(user, action, {kind, ...payload});
 const toast = (m, err) => { const t = $('toast'); t.textContent = m; t.className = 'on' + (err ? ' err' : ''); clearTimeout(toast.h); toast.h = setTimeout(() => t.className = '', err ? 5000 : 2600); };
 const banner = (m, k) => { const b = $('banner'); b.textContent = m || ''; b.className = 'banner' + (m ? ' on ' + (k || 'warn') : ''); };
@@ -198,7 +210,7 @@ onAuthStateChanged(auth, async u => {
   if (ROLE === 'management') { location.replace('index.html'); return; }
   document.body.dataset.role = ROLE; document.documentElement.classList.remove('auth-pending');
   $('who').textContent = (u.email || '') + ' · ' + ({admin:'Administrator', collector:'Data entry'}[ROLE] || ROLE);
-  if (ROLE === 'collector') $('sub').textContent = 'You can add entries and edit your own entries';
+  if (ROLE === 'collector') $('sub').textContent = 'You can add entries, and edit or delete your own entries within ' + EDIT_WINDOW_MIN + ' minutes of saving';
   $('tabs').innerHTML = KS.map(k => `<button data-k="${k}">${k === 'sales' ? 'Sales' : 'Purchase'}</button>`).join('');
   $('tabs').style.display = KS.length > 1 ? '' : 'none';
   month = todayISO().slice(0, 7); $('mon').value = month; setKind(KS[0]);
@@ -229,7 +241,7 @@ async function loadLookups() {
 }
 async function loadList() {
   $('tb').innerHTML = '<tbody><tr><td class="empty">Loading…</td></tr></tbody>';
-  try { const r = await call('list', {month}); rows = r.rows || []; LB = r.labels || {}; banner(''); $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || K().title)) + (month ? ' · ' + month : ' · all months'); }
+  try { const r = await call('list', {month}); rows = r.rows || []; if (ROLE === 'collector') rows.forEach(x => x.exp = expiryOf(x)); LB = r.labels || {}; banner(''); $('lt').textContent = (ROLE === 'collector' ? 'My entries' : (r.tab || K().title)) + (month ? ' · ' + month : ' · all months'); }
   catch (e) { rows = []; banner(e.message, 'err'); }
   renderTable();
 }
@@ -245,9 +257,9 @@ function renderTable() {
   $('tb').innerHTML = '<thead><tr><th>Sl</th>' + F.map(f => `<th${num.has(f.k) ? ' class="n"' : ''}>${esc(lbl(f))}</th>`).join('') + (adm ? '<th>Entered by</th><th>Entered at</th>' : '') + '<th class="act">Actions</th></tr></thead><tbody>' +
     list.slice().reverse().slice(0, CAP).map(r => `<tr${editing && editing.row === r.row ? ' class="sel"' : ''}><td>${esc(r.d.sl || '')}</td>` + F.map(f => `<td${num.has(f.k) ? ' class="n"' : ''}>${esc(r.d[f.k] || '')}</td>`).join('') +
       (adm ? `<td>${esc(r.d.by || '')}</td><td>${esc(r.d.at || '')}</td>` : '') +
-      `<td class="act"><button data-a="edit" data-row="${r.row}">Edit</button>${adm ? `<button data-a="del" data-row="${r.row}" class="danger">Delete</button>` : ''}</td></tr>`).join('') + '</tbody>';
+      `<td class="act">${canMod(r) ? (adm ? '' : `<span class="left${minsLeft(r) <= 5 ? ' low' : ''}">${minsLeft(r)} min left</span>`) + `<button data-a="edit" data-row="${r.row}">Edit</button><button data-a="del" data-row="${r.row}" class="danger">Delete</button>` : `<span class="lock">Locked</span>`}</td></tr>`).join('') + '</tbody>';
 }
-$('tb').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (!b) return; const rec = rows.find(r => r.row === +b.dataset.row); if (!rec) return; b.dataset.a === 'edit' ? startEdit(rec) : ROLE === 'admin' && askDelete(rec); });
+$('tb').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (!b) return; const rec = rows.find(r => r.row === +b.dataset.row); if (!rec) return; if (!canMod(rec)) { toast('The ' + EDIT_WINDOW_MIN + '-minute edit window for this entry has ended. Ask the administrator.', true); renderTable(); return; } b.dataset.a === 'edit' ? startEdit(rec) : askDelete(rec); });
 $('q').addEventListener('input', renderTable);
 $('mon').addEventListener('change', () => { month = $('mon').value || ''; loadList(); });
 $('allm').onclick = () => { month = ''; $('mon').value = ''; loadList(); };
@@ -263,7 +275,7 @@ function resetForm(full) {
   editing = null; $('ft').textContent = 'New ' + (kind === 'sales' ? 'sales' : 'purchase') + ' entry'; $('ftag').hidden = true; $('cancel').hidden = true; $('keepRow').style.display = ''; $('save').textContent = 'Save entry'; calc(); renderTable();
 }
 function startEdit(rec) {
-  editing = {row: rec.row, sig: rec.sig};
+  editing = {row: rec.row, sig: rec.sig, exp: rec.exp};
   K().F.forEach(f => { const v = rec.v[f.k]; inp(f.k).value = v == null ? '' : v; });
   $('ft').textContent = 'Edit entry'; $('ftag').hidden = false; $('cancel').hidden = false; $('keepRow').style.display = 'none'; $('save').textContent = 'Update entry'; calc(); renderTable();
   $('formCard').scrollIntoView({behavior:'smooth', block:'start'}); inp(K().F[0].k).focus({preventScroll:true});
@@ -282,7 +294,12 @@ $('f').addEventListener('submit', async e => {
   const rec = readForm(), bad = K().ok(rec);
   if (bad) { toast(bad[1], true); inp(bad[0]).focus(); return; }
   const dk = K().dateKey, refK = 'challan';
-  if (!editing && rec[refK] && rows.some(r => String(r.v[refK]) === rec[refK] && r.v[dk] === rec[dk]) && !confirm('An entry with ' + rec[refK] + ' on this date already exists. Save anyway?')) return;
+  if (ROLE === 'collector' && editing && !((editing.exp || 0) > Date.now())) { toast('The ' + EDIT_WINDOW_MIN + '-minute edit window has ended. This entry is now locked.', true); resetForm(true); return; }
+  if (rec[refK]) {
+    const norm = v => String(v == null ? '' : v).trim().toLowerCase(), dup = rows.some(r => (!editing || r.row !== editing.row) && norm(r.v[refK]) === norm(rec[refK]));
+    if (ROLE === 'collector') { if (dup) { toast('Challan No "' + rec[refK] + '" already exists. A challan number cannot be used twice.', true); inp(refK).focus(); return; } }   /* the server re-checks across ALL entries */
+    else if (!editing && dup && !confirm('Challan No ' + rec[refK] + ' already exists. Save anyway?')) return;
+  }
   busy(true);
   try {
     const was = !!editing, res = await call(was ? 'update' : 'create', was ? {row: editing.row, sig: editing.sig, record: rec} : {record: rec});
@@ -301,6 +318,14 @@ $('dyes').onclick = async () => {
   try { await call('delete', {row: delRec.row, sig: delRec.sig}); $('dlg').close(); toast('Entry deleted'); if (editing && editing.row === delRec.row) resetForm(true); await loadList(); }
   catch (err) { $('dlg').close(); toast(err.message, true); banner(err.message, 'err'); } finally { $('dyes').disabled = false; delRec = null; }
 };
+/* collectors: refresh the countdown, and lock rows (and close an open edit) the moment 30 minutes pass */
+setInterval(() => {
+  if (ROLE !== 'collector' || !rows.length) return;
+  const now = Date.now();
+  if (editing && !((editing.exp || 0) > now)) { resetForm(true); toast('The ' + EDIT_WINDOW_MIN + '-minute edit window has ended. This entry is now locked.', true); return; }
+  if (rows.some(r => (r.exp || 0) > now)) renderTable();
+  else if (rows.some(r => r._lk !== 1)) { rows.forEach(r => r._lk = 1); renderTable(); }
+}, 15000);
 setTimeout(() => { if (document.documentElement.classList.contains('auth-pending')) $('gateMsg').innerHTML = 'Couldn’t verify your sign-in. <a href="login.html">Go to sign in</a>'; }, 10000);
 </script>
 </body>
