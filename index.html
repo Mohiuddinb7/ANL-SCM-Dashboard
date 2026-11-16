@@ -692,6 +692,10 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 .menuwrap{z-index:300}
 .menupanel{z-index:1000!important}
 .perpanel{z-index:1000}
+/* FIX: on wide screens the fixed top bar kept the header centred but pushed the page tabs to the LEFT
+   (margin:0!important removed the auto side-margins). Centre both the same way, so they line up with the page content. */
+.stickytop.fixed .maintabs{margin:0 auto!important}
+.stickytop.fixed header.top{margin-left:auto!important;margin-right:auto!important}
 </style>
 </head>
 <body>
