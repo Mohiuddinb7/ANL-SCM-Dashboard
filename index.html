@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <meta name="robots" content="noindex,nofollow">
@@ -835,7 +834,7 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
     <div class="tbar">
       <span class="sub desk-only">Click a column heading to sort</span>
       <select id="sortSel" class="mob-only" aria-label="Sort"><option value="iso:-1">Newest first</option><option value="iso:1">Oldest first</option><option value="sales:-1">Highest sales</option><option value="sw:-1">Highest supply</option><option value="cust:1">Customer A–Z</option></select>
-      <div class="dl" role="group" aria-label="Download"><button id="xls" class="primary" title="Download as Excel (.xlsx)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Excel</button><button id="pdf" class="primary" title="Download as PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>PDF</button><button id="csv" title="Download as CSV"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>CSV</button></div>
+      <div class="dl" role="group" aria-label="Download"><button id="pdf" class="primary" title="Download as PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>PDF</button><button id="csv" title="Download as CSV"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>CSV</button></div>
     </div>
     <div class="scroll"><table id="dataTable"></table></div>
     <div class="cards" id="dataCards"></div>
@@ -857,7 +856,7 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
       <div class="panel card full"><h2 id="puC3T">Month-wise purchase (MT)</h2><div class="chart"><canvas id="puC3"></canvas></div></div>
       <div class="panel full"><div class="tbar"><h2>Month-wise purchase summary</h2><span class="sub">MT and value for each product, with month total</span></div><div class="scroll"><table id="puM" class="pm"></table></div></div>
     </section>
-    <section id="puTab" class="panel hidden"><div class="tbar"><h2>Month to Month Purchase Report</h2><div class="dl" role="group" aria-label="Download"><button id="puXls" class="primary" title="Download as Excel (.xlsx)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Excel</button><button id="puPdf" class="primary" title="Download as PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>PDF</button><button id="puCsv" title="Download as CSV"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>CSV</button></div></div><div class="scroll"><table id="puD"></table></div></section>
+    <section id="puTab" class="panel hidden"><div class="tbar"><h2>Month to Month Purchase Report</h2><div class="dl" role="group" aria-label="Download"><button id="puPdf" class="primary" title="Download as PDF"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>PDF</button><button id="puCsv" title="Download as CSV"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>CSV</button></div></div><div class="scroll"><table id="puD"></table></div></section>
   </div>
 
   <div id="pgPL" class="hidden">
@@ -1410,28 +1409,6 @@ function filterText(){
 }
 const fileStamp=()=>new Date().toISOString().slice(0,10);
 const dmy=iso=>iso?iso.split('-').reverse().join('-'):'';
-$('xls').onclick=()=>{
-  if(typeof XLSX==='undefined'){ alert('Excel library could not load. Check your internet connection and try again.'); return; }
-  if(!VIEW.length){ alert('No data to download.'); return; }
-  const rows=exportRows(), po=exportPo();
-  const head=['Date','Product','Customer','PO No','Truck No','Supply (kg)','Sales value (BDT)'];
-  const aoa=[['Agrigate Network Ltd. - SCM Truck-Wise Supply Report'],['Report period: '+periodText()+(filterText()?'   |   '+filterText():'')],[],head]
-    .concat(rows.map(r=>[dmy(r.iso),r.item,r.cust,r.po,r.truck,r.sw,r.sales]))
-    .concat([['Total ('+rows.length+' deliveries)','','','','',sum(rows,'sw'),sum(rows,'sales')]]);
-  const ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[{wch:12},{wch:22},{wch:34},{wch:16},{wch:16},{wch:14},{wch:18}];
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:6}},{s:{r:1,c:0},e:{r:1,c:6}}];
-  const last=aoa.length-1;
-  for(let r=4;r<=last;r++){ for(const c of [5,6]){ const a=XLSX.utils.encode_cell({r,c}); if(ws[a]) ws[a].z='#,##0.00'; } }
-  const ws2=XLSX.utils.aoa_to_sheet([['Customer Name','Product Name','Supply Trucks','PO No','PO Rate (BDT/Kg)','Supply (Kg)','Sales Value (BDT)']]
-    .concat(po.map(x=>[x.cust,x.item,x.n,x.po,x.rate,x.sw,x.sales]))
-    .concat([['Total','',sum(po,'n'),'','',sum(po,'sw'),sum(po,'sales')]]));
-  ws2['!cols']=[{wch:34},{wch:22},{wch:14},{wch:16},{wch:18},{wch:14},{wch:18}];
-  for(let r=1;r<=po.length+1;r++){ for(const c of [5,6]){ const a=XLSX.utils.encode_cell({r,c}); if(ws2[a]) ws2[a].z='#,##0.00'; } }
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Deliveries'); XLSX.utils.book_append_sheet(wb,ws2,'PO Summary');
-  XLSX.writeFile(wb,'agrigate_supply_report_'+fileStamp()+'.xlsx');
-};
 $('pdf').onclick=()=>{
   const J=window.jspdf&&window.jspdf.jsPDF;
   if(!J){ alert('PDF library could not load. Check your internet connection and try again.'); return; }
@@ -1909,15 +1886,6 @@ $('puCsv').onclick=()=>{
   const lines=[c.head,...c.rows].map(r=>r.map(x=>q(isNumS(x)?x.replace(/,/g,''):x)).join(','));
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}));
   a.download='agrigate_purchase_report_'+fileStamp()+'.csv'; a.click();
-};
-$('puXls').onclick=()=>{
-  const c=PURM&&PURM.cur; if(!c||!c.rows.length){ alert('No data to download.'); return; }
-  if(typeof XLSX==='undefined'){ alert('Excel library could not load. Check your internet connection and try again.'); return; }
-  const aoa=[c.head,...c.rows.map(r=>r.map(x=>isNumS(x)?nv(x):x))];
-  const ws=XLSX.utils.aoa_to_sheet(aoa);
-  Object.keys(ws).forEach(k=>{ if(k[0]!=='!'&&typeof ws[k].v==='number'&&XLSX.utils.decode_cell(k).r>0&&/quantity|rate|amount|value|qty/i.test(c.head[XLSX.utils.decode_cell(k).c]||'')) ws[k].z='#,##0.00'; });
-  ws['!cols']=c.head.map((h,i)=>({wch:Math.min(40,Math.max(8,h.length+2,...c.rows.slice(0,200).map(r=>String(r[i]).length+2)))}));
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Purchase'); XLSX.writeFile(wb,'agrigate_purchase_report_'+fileStamp()+'.xlsx');
 };
 $('puPdf').onclick=()=>{
   const c=PURM&&PURM.cur; if(!c||!c.rows.length){ alert('No data to download.'); return; }
