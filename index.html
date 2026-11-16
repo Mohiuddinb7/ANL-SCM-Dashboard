@@ -588,7 +588,7 @@ header.top .controls .chip{height:38px;padding:0 12px;font-size:12.5px}
 .menuf{display:grid;gap:12px;margin:6px 0 12px}
 header.top .menuf label.f{width:100%;color:var(--muted)}
 .menuf select,.menuf button{width:100%}
-#menuPanel[data-pg="Purch"] .filterbar,#menuPanel[data-pg="PL"] .filterbar,#menuPanel:not([data-pg="Supply"]) .mh.stat,#menuPanel:not([data-pg="Supply"]) #status,#menuPanel:not([data-pg="Supply"]) #sheetInfo,#menuPanel:not([data-pg="Purch"]) #puF,#menuPanel:not([data-pg="PL"]) #plF{display:none!important}
+#menuPanel[data-pg="Purch"]>.filterbar,#menuPanel[data-pg="PL"]>.filterbar,#menuPanel:not([data-pg="Supply"]) .mh.stat,#menuPanel:not([data-pg="Supply"]) #status,#menuPanel:not([data-pg="Supply"]) #sheetInfo,#menuPanel:not([data-pg="Purch"]) #puF,#menuPanel:not([data-pg="PL"]) #plF{display:none!important}
 #cntChip{display:none!important}
 #period:empty{display:none}
 .suplist{list-style:none;margin:10px 0 0;padding:0 6px 0 0;display:grid;gap:14px;max-height:330px;overflow:auto}
@@ -723,6 +723,9 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 
 /* Supply filter menu: only Month, From/To, Search, Product, Customer and PO / WO (quick-period chips removed) */
 .menupanel .perpanel .presets,.menupanel .perpanel>.mh{display:none!important}
+/* "Data status" block in the filter menu: hidden while all sheets load fine (the header already shows "Updated hh:mm"); it appears again, with details, only when a sheet fails or is empty */
+.menupanel #status:not(.err){display:none!important}
+.menupanel .mh.stat:has(+ #status:not(.err)){display:none!important}
 </style>
 </head>
 <body>
@@ -782,11 +785,21 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
     </div>
   </section>
   <div class="menuf hidden" id="puF">
-    <label class="f">From month<select id="puFrom"></select></label>
-    <label class="f">To month<select id="puTo"></select></label>
-    <label class="f">Product<select id="puProd"></select></label>
-    <label class="f" id="puSupL">Supplier<select id="puSup"></select></label>
-    <button id="puClr" class="link">Clear filters</button>
+    <section class="filterbar" aria-label="Filters">
+      <div class="perpanel">
+        <label class="f">Month<select id="puMonth"></select></label>
+        <div class="range">
+          <label class="f">From<select id="puFrom"></select></label>
+          <label class="f">To<select id="puTo"></select></label>
+        </div>
+      </div>
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="puQ" placeholder="Search product, supplier…" aria-label="Search" autocomplete="off"></label>
+      <div class="morefilters">
+        <select id="puProd" aria-label="Product"></select>
+        <select id="puSup" aria-label="Supplier"></select>
+        <button id="puClr" class="link">Clear filters</button>
+      </div>
+    </section>
   </div>
   <div class="menuf hidden" id="plF">
     <label class="f">From month<select id="plFrom"></select></label>
@@ -1873,17 +1886,18 @@ $('puVd').onclick=()=>puView('dash'); $('puVt').onclick=()=>puView('table');
 function puFilt(){
   if(!PUR) return [];
   let a=$('puFrom').value,b=$('puTo').value; if(a>b){ [a,b]=[b,a]; }
-  const pr=$('puProd').value, su=$('puSup').value;
-  return PUR.recs.filter(d=>d.month>=a&&d.month<=b&&(!pr||d.item===pr)&&(!su||d.party===su));
+  const pr=$('puProd').value, su=$('puSup').value, q=$('puQ').value.trim().toLowerCase();
+  return PUR.recs.filter(d=>d.month>=a&&d.month<=b&&(!pr||d.item===pr)&&(!su||d.party===su)&&(!q||(d.item+' '+d.party).toLowerCase().includes(q)));
 }
 function puFillFilters(){
   if(!PUR) return;
   const ks=[...new Set(PUR.recs.map(d=>d.month))].sort(), opt=ks.map(k=>`<option value="${k}">${esc(mlab(k))}</option>`).join('');
   $('puFrom').innerHTML=opt; $('puTo').innerHTML=opt; $('puFrom').value=ks[0]; $('puTo').value=ks[ks.length-1];
+  $('puMonth').innerHTML='<option value="">Any month</option>'+opt; $('puMonth').value=''; $('puQ').value='';
   const it=[...new Set(PUR.recs.map(d=>d.item))].sort(), su=[...new Set(PUR.recs.map(d=>d.party).filter(Boolean))].sort();
   $('puProd').innerHTML='<option value="">All Products</option>'+it.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
   $('puSup').innerHTML='<option value="">All Suppliers</option>'+su.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  $('puSupL').classList.toggle('hidden',!su.length); $('puF').classList.remove('hidden');
+  $('puSup').classList.toggle('hidden',!su.length); $('puF').classList.remove('hidden');
 }
 let PURM=null;
 function puTable(){
@@ -1901,7 +1915,7 @@ function puTable(){
 const isNumS=v=>/^[\d,.()\s-]+$/.test(v)&&/\d/.test(v);
 const puSum=()=>{ const R=PUR&&PUR.mi!=null?puFilt():null; if(!R) return null; const q=sum(R,'qty'), a=sum(R,'amt'), kg=PUR.qHdr==='kg'; return {n:R.length,q:kg?q/1000:q,a}; };
 const puPeriod=()=>$('period').textContent.replace('Report Period','').trim();
-const puFiltTxt=()=>{ const f=[]; if(PUR&&PUR.mi!=null){ if($('puProd').value) f.push('Product: '+$('puProd').value); if($('puSup').value) f.push('Supplier: '+$('puSup').value); } return f.join(' | '); };
+const puFiltTxt=()=>{ const f=[]; if(PUR&&PUR.mi!=null){ if($('puProd').value) f.push('Product: '+$('puProd').value); if($('puSup').value) f.push('Supplier: '+$('puSup').value); if($('puQ').value.trim()) f.push('Search: '+$('puQ').value.trim()); } return f.join(' | '); };
 $('puCsv').onclick=()=>{
   const c=PURM&&PURM.cur; if(!c||!c.rows.length){ alert('No data to download.'); return; }
   const q=v=>/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
@@ -1931,7 +1945,10 @@ $('puPdf').onclick=()=>{
   doc.save('agrigate_purchase_report_'+fileStamp()+'.pdf');
 };
 let PURN=0;
-['puFrom','puTo','puProd','puSup'].forEach(id=>$(id).onchange=()=>renderPurch());
+['puProd','puSup'].forEach(id=>$(id).onchange=()=>renderPurch());
+$('puMonth').onchange=()=>{ const v=$('puMonth').value, o=[...$('puFrom').options].map(x=>x.value); if(v){ $('puFrom').value=v; $('puTo').value=v; } else if(o.length){ $('puFrom').value=o[0]; $('puTo').value=o[o.length-1]; } renderPurch(); };
+['puFrom','puTo'].forEach(id=>$(id).onchange=()=>{ $('puMonth').value=''; renderPurch(); });
+$('puQ').oninput=()=>renderPurch();
 $('puClr').onclick=()=>{ puFillFilters(); renderPurch(); };
 function renderPurch(nrows){
   if(nrows!=null) PURN=nrows; nrows=PURN;
