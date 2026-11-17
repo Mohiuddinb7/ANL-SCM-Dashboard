@@ -804,10 +804,20 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
     </section>
   </div>
   <div class="menuf hidden" id="plF">
-    <label class="f">From month<select id="plFrom"></select></label>
-    <label class="f">To month<select id="plTo"></select></label>
-    <label class="f">Product<select id="plProd"></select></label>
-    <button id="plAll" class="link">Clear filters</button>
+    <section class="filterbar" aria-label="Filters">
+      <div class="perpanel">
+        <label class="f">Month<select id="plMonth"></select></label>
+        <div class="range">
+          <label class="f">From<select id="plFrom"></select></label>
+          <label class="f">To<select id="plTo"></select></label>
+        </div>
+      </div>
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="plQ" placeholder="Search product…" aria-label="Search product" autocomplete="off"></label>
+      <div class="morefilters">
+        <select id="plProd" aria-label="Product"></select>
+        <button id="plAll" class="link">Clear filters</button>
+      </div>
+    </section>
   </div>
           <div class="mh stat">Data status</div>
           <div id="status" class="status" role="status"></div>
@@ -1668,7 +1678,7 @@ async function loadPL(){
     if(live.length) months.splice(0,months.length,...live);
     PLD={months,M,subs:[...subMap.values()],errs,tabs:tabs.length};
     const opt=[...months].reverse().map(l=>`<option value="${l}">${l}</option>`).join('');   /* newest month on top */
-    $('plFrom').innerHTML=opt; $('plTo').innerHTML=opt;
+    $('plFrom').innerHTML=opt; $('plTo').innerHTML=opt; $('plMonth').innerHTML='<option value="">Any month</option>'+opt; $('plMonth').value='';
     $('plFrom').value=months.includes('Mar-26')?'Mar-26':months[0]; $('plTo').value=months[months.length-1];
     const prevP=$('plProd').value;
     $('plProd').innerHTML='<option value="">All Products</option>'+PLD.subs.filter(x=>x.sec==='rev').map(x=>`<option value="${esc(x.lab)}">${esc(x.lab)}</option>`).join('');
@@ -1684,12 +1694,15 @@ function renderPL(){
   let a=D.months.indexOf($('plFrom').value), b=D.months.indexOf($('plTo').value); if(a>b){ [a,b]=[b,a]; }
   const ms=D.months.slice(a,b+1);
   /* Product filter: revenue + volume come from the product's revenue line, cost from the product's cost line (same name), GP = revenue - cost */
-  const PR=$('plProd').value, revSub=PR?D.subs.find(x=>x.sec==='rev'&&x.lab===PR):null, costSub=PR?D.subs.find(x=>x.sec==='cost'&&x.lab.toLowerCase()===PR.toLowerCase()):null;
-  const sv=(l,sb)=>(sb&&D.M[l].subs.find(y=>y.s===sb))||{q:null,a:null};
-  const g=(l,k)=>{ if(!PR) return D.M[l][k]; const r=sv(l,revSub), c=sv(l,costSub);
-    if(k==='rev') return r.a; if(k==='rev_q') return r.q;
-    if(k==='cogs') return c.a==null?null:Math.abs(c.a); if(k==='cogs_q') return c.q;
-    if(k==='gp') return costSub?(r.a||0)-Math.abs(c.a||0):null;
+  const PRS=$('plProd').value, QR=$('plQ').value.trim(), QS=QR.toLowerCase(), PR=!!(PRS||QS);
+  const selRev=PR?D.subs.filter(x=>x.sec==='rev'&&(!PRS||x.lab===PRS)&&(!QS||x.lab.toLowerCase().includes(QS))):[];
+  const selCost=PR?D.subs.filter(x=>x.sec==='cost'&&selRev.some(r=>r.lab.toLowerCase()===x.lab.toLowerCase())):[];
+  const sv=(l,list,f)=>{ let any=false,t=0; list.forEach(sb=>{ const e=D.M[l].subs.find(y=>y.s===sb); if(e&&e[f]!=null){ any=true; t+=e[f]; } }); return any?t:null; };
+  const g=(l,k)=>{ if(!PR) return D.M[l][k];
+    const ra=sv(l,selRev,'a'), rq=sv(l,selRev,'q'), ca=sv(l,selCost,'a');
+    if(k==='rev') return ra; if(k==='rev_q') return rq;
+    if(k==='cogs') return ca==null?null:Math.abs(ca); if(k==='cogs_q') return sv(l,selCost,'q');
+    if(k==='gp') return selCost.length?(ra||0)-Math.abs(ca||0):null;
     return D.M[l][k]; };
   const S=(k,f)=>ms.reduce((s,l)=>s+(f==='q'?(g(l,k+'_q')||0):(g(l,k)||0)),0);
   const pc=(x,y)=>y?x/y*100:null;
@@ -1702,21 +1715,22 @@ function renderPL(){
   const FMN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const plFull=l=>{ const m=/^([A-Za-z]{3})-(\d{2})$/.exec(l); return m?FMN[MON[m[1].toLowerCase()]]+' 20'+m[2]:l; };
   $('plT').textContent=PR?'Product-wise Gross Profit Statement':'Monthly Gross Profit & Trading Performance Statement';
-  $('plR').textContent=PR?'Raw Material (RM) Trading - '+PR:'Raw Material (RM) Trading';
+  $('plR').textContent=!PR?'Raw Material (RM) Trading':!selRev.length?'Raw Material (RM) Trading - no product matches "'+(QR||PRS)+'"':selRev.length===1?'Raw Material (RM) Trading - '+selRev[0].lab:'Raw Material (RM) Trading - '+selRev.map(x=>x.lab).join(', ');
   $('plP').textContent='For the Period from '+plFull(ms[0])+' to '+plFull(ms[ms.length-1]);
   /* growth is recomputed month on month across the merged timeline */
   const growth=l=>{ const i=D.months.indexOf(l); if(i<1) return null; const p=g(D.months[i-1],'rev'), c=g(l,'rev'); return p?(c-p)/p*100:null; };
   /* Layout: products first, then the total line under them */
   const rows=[]; const R=(lab,k,o={})=>rows.push({lab,k,...o});
-  if(PR){                                            /* one product: its own volume, revenue, cost, profit and margin */
+  const RV=PR?selRev:D.subs.filter(x=>x.sec==='rev'), CS=PR?selCost:D.subs.filter(x=>x.sec==='cost');
+  if(PR&&selRev.length<=1){                          /* one product: its own volume, revenue, cost, profit and margin */
     R('Volume (MT)','rev',{vol:1,bold:1}); R('Revenue','rev',{bold:1}); R('Cost of Sales','cogs',{bold:1});
     R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
   } else {
-  D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1,vol:1}));      /* product-wise volume (MT) */
+  RV.forEach(s=>rows.push({lab:s.lab,sub:s,ind:1,vol:1}));      /* product-wise volume (MT) */
   R('Total Volume (MT)','rev',{vol:1,bold:1});
-  D.subs.filter(s=>s.sec==='rev').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
+  RV.forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
   R('Total Revenue','rev',{bold:1});
-  D.subs.filter(s=>s.sec==='cost').forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
+  CS.forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
   R('Total Cost of Sales','cogs',{bold:1});
   R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
   }
@@ -1756,7 +1770,9 @@ function renderPL(){
     {type:'line',label:'Gross Profit',data:ms.map(l=>g(l,'gp')||0),borderColor:'#8a9420',backgroundColor:'#ccd065',pointRadius:4,yAxisID:'y1',tension:.3}]},
     options:{...base,scales:{x:xs,y:{title:axT('Revenue (BDT million)'),ticks:{callback:lblM}},y1:{position:'right',title:axT('Gross profit (BDT million)'),grid:{drawOnChartArea:false},ticks:{callback:lblM}}},plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+money(c.parsed.y)}}}}});
 }
-$('plFrom').onchange=renderPL; $('plTo').onchange=renderPL; $('plProd').onchange=renderPL;
+$('plProd').onchange=renderPL; $('plQ').oninput=renderPL;
+$('plMonth').onchange=()=>{ if(!PLD) return; const v=$('plMonth').value; if(v){ $('plFrom').value=v; $('plTo').value=v; } else { $('plFrom').value=PLD.months[0]; $('plTo').value=PLD.months[PLD.months.length-1]; } renderPL(); };
+$('plFrom').onchange=()=>{ $('plMonth').value=''; renderPL(); }; $('plTo').onchange=()=>{ $('plMonth').value=''; renderPL(); };
 $('plPdf').onclick=()=>{
   const X=PLX; if(!X||!X.rows.length){ alert('No data to download.'); return; }
   const J=window.jspdf&&window.jspdf.jsPDF; if(!J){ alert('PDF library could not load. Check your internet connection and try again.'); return; }
@@ -1786,7 +1802,7 @@ $('plPdf').onclick=()=>{
     didDrawPage:()=>{ doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120,130,125); doc.text('Page '+doc.internal.getCurrentPageInfo().pageNumber,W-36,H-16,{align:'right'}); }});
   doc.save('agrigate_profit_loss_'+fileStamp()+'.pdf');
 };
-$('plAll').onclick=()=>{ if(!PLD) return; $('plFrom').value=PLD.months[0]; $('plTo').value=PLD.months[PLD.months.length-1]; $('plProd').value=''; renderPL(); };
+$('plAll').onclick=()=>{ if(!PLD) return; $('plFrom').value=PLD.months[0]; $('plTo').value=PLD.months[PLD.months.length-1]; $('plMonth').value=''; $('plProd').value=''; $('plQ').value=''; renderPL(); };
 
 /* ---------- Month to Month Purchase ---------- */
 const PU_NAMES=['Month to Month Purchase Report','Month To Month Purchase Report','Month to Month Purchase'];
