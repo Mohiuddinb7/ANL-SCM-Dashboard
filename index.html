@@ -726,6 +726,8 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 /* "Data status" block in the filter menu: hidden while all sheets load fine (the header already shows "Updated hh:mm"); it appears again, with details, only when a sheet fails or is empty */
 .menupanel #status:not(.err){display:none!important}
 .menupanel .mh.stat:has(+ #status:not(.err)){display:none!important}
+/* Removed info lines: "62 of 1,011 deliveries shown · date range" (Supply) and "N rows · source" (Procurement) */
+#count,#puCnt{display:none!important}
 </style>
 </head>
 <body>
@@ -1665,7 +1667,7 @@ async function loadPL(){
     const live=months.filter(l=>(M[l].rev||0)!==0||(M[l].gp||0)!==0);
     if(live.length) months.splice(0,months.length,...live);
     PLD={months,M,subs:[...subMap.values()],errs,tabs:tabs.length};
-    const opt=months.map(l=>`<option value="${l}">${l}</option>`).join('');
+    const opt=[...months].reverse().map(l=>`<option value="${l}">${l}</option>`).join('');   /* newest month on top */
     $('plFrom').innerHTML=opt; $('plTo').innerHTML=opt;
     $('plFrom').value=months.includes('Mar-26')?'Mar-26':months[0]; $('plTo').value=months[months.length-1];
     const prevP=$('plProd').value;
@@ -1893,7 +1895,7 @@ function puFilt(){
 }
 function puFillFilters(){
   if(!PUR) return;
-  const ks=[...new Set(PUR.recs.map(d=>d.month))].sort(), opt=ks.map(k=>`<option value="${k}">${esc(mlab(k))}</option>`).join('');
+  const ks=[...new Set(PUR.recs.map(d=>d.month))].sort(), opt=[...ks].reverse().map(k=>`<option value="${k}">${esc(mlab(k))}</option>`).join('');   /* newest month on top, like Truck-Wise Supply */
   $('puFrom').innerHTML=opt; $('puTo').innerHTML=opt; $('puFrom').value=ks[0]; $('puTo').value=ks[ks.length-1];
   $('puMonth').innerHTML='<option value="">Any month</option>'+opt; $('puMonth').value=''; $('puQ').value='';
   const it=[...new Set(PUR.recs.map(d=>d.item))].sort(), su=[...new Set(PUR.recs.map(d=>d.party).filter(Boolean))].sort();
@@ -1948,7 +1950,7 @@ $('puPdf').onclick=()=>{
 };
 let PURN=0;
 ['puProd','puSup'].forEach(id=>$(id).onchange=()=>renderPurch());
-$('puMonth').onchange=()=>{ const v=$('puMonth').value, o=[...$('puFrom').options].map(x=>x.value); if(v){ $('puFrom').value=v; $('puTo').value=v; } else if(o.length){ $('puFrom').value=o[0]; $('puTo').value=o[o.length-1]; } renderPurch(); };
+$('puMonth').onchange=()=>{ const v=$('puMonth').value, o=[...$('puFrom').options].map(x=>x.value).sort(); if(v){ $('puFrom').value=v; $('puTo').value=v; } else if(o.length){ $('puFrom').value=o[0]; $('puTo').value=o[o.length-1]; } renderPurch(); };
 ['puFrom','puTo'].forEach(id=>$(id).onchange=()=>{ $('puMonth').value=''; renderPurch(); });
 $('puQ').oninput=()=>renderPurch();
 $('puClr').onclick=()=>{ puFillFilters(); renderPurch(); };
