@@ -976,6 +976,7 @@ function rowsToRecords(matrix, tab){
     item:col(isItem), cust:col(isCust), po:col(x=>['wopono','pono','wono','wopo'].includes(x)),
     date:(()=>{let i=col(x=>x==='deliverydate'); return i<0?col(x=>['date','supplydate','challandate'].includes(x)):i;})(),
     truck:col(x=>x==='truckno'||x.startsWith('truck')),
+    loc:col(x=>x.startsWith('supplylocation')||x.startsWith('deliverylocation')||x==='location'),
     sw:col(x=>x.startsWith('sweight')||x.startsWith('supplyweight')||x.startsWith('supplyqty')),
     rw:col(x=>x.startsWith('rweight')||x.startsWith('receivedweight')),
     sales:col(x=>x==='salesvalue'||x==='salesamount'||x==='sales'), rate:col(x=>['woporate','porate','rate'].includes(x))
@@ -990,7 +991,7 @@ function rowsToRecords(matrix, tab){
     const dt = parseDate(r[ix.date]);
     out.push({
       tab, item, cust:(r[ix.cust]||'').trim()||'(blank)', po:cleanPo(r[ix.po])||'(blank)',
-      truck:(r[ix.truck]||'').trim(), sw, rw, sales, rate:num(r[ix.rate]),
+      truck:(r[ix.truck]||'').trim(), loc:ix.loc>=0?String(r[ix.loc]||'').trim():'', sw, rw, sales, rate:num(r[ix.rate]),
       iso: dt?`${dt.y}-${pad(dt.m+1)}-${pad(dt.d)}`:'',
       month: dt?`${dt.y}-${pad(dt.m+1)}`:'',
       year: dt?String(dt.y):''
@@ -1217,8 +1218,8 @@ function renderKpis(){
     <div class="kpi"><div class="l">${ic('pie')}Product-Wise Sales Value (BDT)</div>${list('sales',x=>money(x).replace('BDT ',''))}</div>
     <div class="kpi"><div class="flow flow3">
       <div><div class="l">${ic('truck')}Total Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">Against ${nPo} PO Number${nPo===1?'':'s'}</div></div>
-      <div title="Total customers supplied"><div class="l">${ic('users')}Unique Customers</div><div class="v">${fmt(uCust)}</div><div class="s">customers supplied</div></div>
-      <div title="Total different trucks used"><div class="l">${ic('truck')}Unique Trucks</div><div class="v">${fmt(uTruck)}</div><div class="s">different trucks used</div></div>
+      <div title="Total customers supplied"><div class="l">${ic('users')}Unique Customers</div><div class="v">${fmt(uCust)}</div><div class="s">Customers Supplied</div></div>
+      <div title="Total different trucks used"><div class="l">${ic('truck')}Unique Trucks</div><div class="v">${fmt(uTruck)}</div><div class="s">Different Trucks Used</div></div>
     </div></div>`;
 }
 const PAL = ['#33552b','#658b2e','#ccd065','#8aa63a','#a9b83a','#4d7a3a','#9aa58f','#b5432f'];
@@ -1281,7 +1282,7 @@ function renderCharts(){
     +byItem.map((x,i)=>{const pc=x.sales/totSales*100;
     return `<li title="${esc(x.k)}: ${money(x.sales)}"><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><span class="vl r">${cr(x.sales)}</span><b class="r">${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')
     +(byItem.length?`<li class="tot"><span></span><span class="nm">Total</span><span class="vl r">${cr(totalSales)}</span><b class="r">100%</b></li>`:'');
-  $('c1tot').textContent='Total Sales '+money(sum(VIEW,'sales'));
+  $('c1tot').textContent='Total Sales '+money(sum(VIEW,'sales')).replace(/ Cr$/,' Crore');
   $('c2tot').textContent='Total Supply '+mt(sum(VIEW,'sw'));
   const nw=innerWidth<560, ax2=t=>({display:true,text:t,color:cs.getPropertyValue('--muted').trim(),font:{size:nw?11:12.5,weight:'600'},padding:6});
   const wrapLbl=t=>{ const out=[],max=nw?10:14; let l=''; String(t).split(' ').forEach(w=>{ if(l&&(l+' '+w).length>max){ out.push(l); l=w; } else l=(l+' '+w).trim(); }); if(l) out.push(l); return out; };
@@ -1366,13 +1367,14 @@ function renderTable(){
   const cols=[{t:'Date',k:'iso',f:r=>r.iso?r.iso.split('-').reverse().join('-'):''},{t:'Product',k:'item'},{t:'Customer',k:'cust'},{t:'PO No',k:'po'},
     {t:'Truck No',k:'truck'},
     {t:'Supply (kg)',k:'sw',n:1,f:r=>fmt(r.sw,2)},
-    {t:'Sales value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)}];
+    {t:'Sales value (BDT)',k:'sales',n:1,f:r=>fmt(r.sales,2)},
+    {t:'Supply Location',k:'loc',f:r=>esc(r.loc||'-')}];
   const val = r => sortKey==='diff' ? r.sw-r.rw : r[sortKey];
   const rows=[...VIEW].sort((a,b)=>{const x=val(a),y=val(b); return (x<y?-1:x>y?1:0)*sortDir;});
   const sw=sum(VIEW,'sw'),rw=sum(VIEW,'rw');
-  const foot=`<td colspan="5">Total (${fmt(VIEW.length)} deliveries)</td><td class="n">${fmt(sw,2)}</td><td class="n">${fmt(sum(VIEW,'sales'),2)}</td>`;
+  const foot=`<td colspan="5">Total (${fmt(VIEW.length)} deliveries)</td><td class="n">${fmt(sw,2)}</td><td class="n">${fmt(sum(VIEW,'sales'),2)}</td><td></td>`;
   const t=$('dataTable'); t.innerHTML=tableHtml(cols,rows,VIEW.length?foot:'');
-  $('dataCards').innerHTML = rows.length ? rows.slice(0,cardLimit).map(r=>`<div class="pcard"><div class="pc-h"><b>${esc(r.cust)}</b><span>${esc(r.item)} · ${r.iso?dateLabel(r.iso):'-'}</span></div><div class="pc-g"><div><small>PO NO</small>${esc(r.po)}</div><div><small>Truck No</small>${esc(r.truck||'-')}</div><div><small>Supply (Kg)</small>${fmt(r.sw,2)}</div><div><small>Sales Value (BDT)</small>${fmt(r.sales,2)}</div></div></div>`).join('')
+  $('dataCards').innerHTML = rows.length ? rows.slice(0,cardLimit).map(r=>`<div class="pcard"><div class="pc-h"><b>${esc(r.cust)}</b><span>${esc(r.item)} · ${r.iso?dateLabel(r.iso):'-'}</span></div><div class="pc-g"><div><small>PO NO</small>${esc(r.po)}</div><div><small>Truck No</small>${esc(r.truck||'-')}</div><div><small>Supply (Kg)</small>${fmt(r.sw,2)}</div><div><small>Sales Value (BDT)</small>${fmt(r.sales,2)}</div><div class="wide"><small>Supply Location</small>${esc(r.loc||'-')}</div></div></div>`).join('')
     +(rows.length>cardLimit?`<button class="morecards" id="moreCards">Show more (${fmt(rows.length-cardLimit)} left)</button>`:'') : '<div class="empty">No deliveries match these filters.</div>';
   t.querySelectorAll('th').forEach(th=>th.onclick=()=>{
     const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=1;} renderTable();
@@ -1394,9 +1396,9 @@ const onFilter=()=>{buildFilters();render();};
 ['fItem','fCust','fPo'].forEach(id=>$(id).onchange=()=>{ onFilter(); toggleMenu(false); });
 $('reset').onclick=()=>{ ['fItem','fCust','fPo','fQ'].forEach(id=>$(id).value=''); setPeriod('',''); toggleMenu(false); };
 $('csv').onclick=()=>{
-  const head=['Date','Product','Customer','PO No','Truck No','Supply (kg)','Sales value'];
+  const head=['Date','Product','Customer','PO No','Truck No','Supply (kg)','Sales value','Supply Location'];
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  const lines=[head.map(q).join(',')].concat(VIEW.map(r=>[r.iso,r.item,r.cust,r.po,r.truck,r.sw,r.sales].map(q).join(',')));
+  const lines=[head.map(q).join(',')].concat(VIEW.map(r=>[r.iso,r.item,r.cust,r.po,r.truck,r.sw,r.sales,r.loc].map(q).join(',')));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}));
   a.download='supply_data.csv'; a.click();
@@ -1444,9 +1446,9 @@ $('pdf').onclick=()=>{
   doc.text('Supply: '+mt(sw)+'    Sales: '+money(sales)+'    Trucks: '+fmt(rows.length),W-36,57,{align:'right'});
   doc.autoTable({
     startY:filterText()?98:84, theme:'striped',
-    head:[['Date','Product','Customer','PO No','Truck No','Supply (kg)','Sales value (BDT)']],
-    body:rows.map(r=>[dmy(r.iso),r.item,r.cust,r.po,r.truck,fmt(r.sw,2),fmt(r.sales,2)]),
-    foot:[['Total ('+fmt(rows.length)+' deliveries)','','','','',fmt(sw,2),fmt(sales,2)]],
+    head:[['Date','Product','Customer','PO No','Truck No','Supply (kg)','Sales value (BDT)','Supply Location']],
+    body:rows.map(r=>[dmy(r.iso),r.item,r.cust,r.po,r.truck,fmt(r.sw,2),fmt(r.sales,2),r.loc||'-']),
+    foot:[['Total ('+fmt(rows.length)+' deliveries)','','','','',fmt(sw,2),fmt(sales,2),'']],
     showFoot:'lastPage',
     styles:{fontSize:8.5,cellPadding:4,textColor:[22,35,28]},
     headStyles:{fillColor:[51,85,43],textColor:255,fontStyle:'bold'},
