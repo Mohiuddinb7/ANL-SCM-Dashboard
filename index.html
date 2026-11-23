@@ -1115,8 +1115,8 @@ async function load(){
   buildPerMonths();
   buildFilters();
   render();
-  const time = new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-  setLive(fails.length && !DATA.length ? 'off' : 'ok', new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
+  const time = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:true});
+  setLive(fails.length && !DATA.length ? 'off' : 'ok', new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:true}));
   const short=n=>n.replace('Supply Details ','');
   $('sheetInfo').innerHTML='<ul>'+rep.map(x=>x.ok
     ? (x.c ? `<li class="ok">✓ <b>${esc(short(x.n))}</b> · ${fmt(x.c)} rows<span>${esc(x.u||'')}</span></li>`
@@ -1560,7 +1560,7 @@ const nv=s=>{ s=String(s??'').trim(); if(!s||s==='-') return null; const neg=/^\
 const f2=n=>n==null?'':fmt(n,2);
 const kp=(l,v,s)=>`<div class="kpi"><div class="l">${/^<svg/.test(l)?l.replace(/(<\/svg>)(.*)$/,(m,a,t)=>a+esc(t)):esc(l)}</div><div class="v">${v}</div><div class="s">${s||''}</div></div>`;
 let CURPG='Supply',SUP=null; const LIVE={};
-const nowT=()=>new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+const nowT=()=>new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
 function page(k){
   ['Supply','Purch','PL'].forEach(x=>{ $('pg'+x).classList.toggle('hidden',x!==k); $('t'+x).setAttribute('aria-pressed',x===k); });
   $('pgSub').textContent=SUBS[k];
