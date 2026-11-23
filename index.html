@@ -1992,7 +1992,7 @@ function renderPurch(nrows){
   $('puK').innerHTML=`
     <div class="kpi"><div class="flow">
       <div><div class="l">${ic('scale')}Total Purchase Weight</div><div class="v">${hasQ?kfull(fmt(tq/U,2)+' MT'):'–'}</div><div class="s">${hasQ?fmt(tq,0)+(kg?' kg':' MT'):'no quantity in sheet'}</div></div>
-      <div><div class="l">${ic('cash')}Total Purchase Value</div><div class="v">${hasA?kfull(money(ta)):'–'}</div><div class="s">${hasA?'BDT '+fmt(ta)+(hasQ?' · avg '+fmt(ta/tq,2)+' per '+(kg?'kg':'MT'):''):'no amount in sheet'}</div></div>
+      <div><div class="l">${ic('cash')}Total Purchase Value</div><div class="v">${hasA?kfull(money(ta)):'–'}</div><div class="s">${hasA?'BDT '+fmt(ta):'no amount in sheet'}</div></div>
     </div></div>
     <div class="kpi"><div class="l">${ic('bars')}Product-Wise Purchase Weight (MT)</div>${list('qty',mtf)}</div>
     <div class="kpi"><div class="l">${ic('pie')}Product-Wise Purchase Value (BDT)</div>${list('amt',cr)}</div>
