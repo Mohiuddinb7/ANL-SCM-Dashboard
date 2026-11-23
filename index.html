@@ -1710,8 +1710,8 @@ function renderPL(){
   hdrSync();
   const rev=S('rev','a'),gp=S('gp','a'),cogs=S('cogs','a');
   const vq=S('rev','q');
-  $('plK').innerHTML=kp(ic('cash')+'Total Sales Value',money(rev),'BDT '+fmt(rev)+'<br>against '+f2(vq)+' MT Supply')
-    +kp(ic('scale')+'Cost of Goods Sold',money(Math.abs(cogs)),'BDT '+fmt(Math.abs(cogs),0)+'<br>'+f2(pc(Math.abs(cogs),rev))+'% of sales')
+  $('plK').innerHTML=kp(ic('cash')+'Total Sales Value',money(rev),'BDT '+fmt(rev)+'<br>Against '+f2(vq)+' MT Supply')
+    +kp(ic('scale')+'Cost of Goods Sold',money(Math.abs(cogs)),'BDT '+fmt(Math.abs(cogs),0)+'<br>'+f2(pc(Math.abs(cogs),rev))+'% of Sales')
     +kp(ic('bars')+'Gross Profit',money(gp),'BDT '+fmt(gp,0)+'<br>Margin '+f2(pc(gp,rev))+'%');
   const FMN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const plFull=l=>{ const m=/^([A-Za-z]{3})-(\d{2})$/.exec(l); return m?FMN[MON[m[1].toLowerCase()]]+' 20'+m[2]:l; };
@@ -1997,9 +1997,9 @@ function renderPurch(nrows){
     <div class="kpi"><div class="l">${ic('bars')}Product-Wise Purchase Weight (MT)</div>${list('qty',mtf)}</div>
     <div class="kpi"><div class="l">${ic('pie')}Product-Wise Purchase Value (BDT)</div>${list('amt',cr)}</div>
     <div class="kpi"><div class="flow flow3">
-      <div><div class="l">${ic('doc')}Total Purchase Entries</div><div class="v">${fmt(R.length)}</div><div class="s">${items.length} product${items.length===1?'':'s'}</div></div>
+      <div><div class="l">${ic('doc')}Total Purchase Entries</div><div class="v">${fmt(R.length)}</div><div class="s">${items.length} Product${items.length===1?'':'s'}</div></div>
       <div><div class="l">${ic('cal')}Months Covered</div><div class="v">${months.length}</div><div class="s">${esc(mlab(months[0].k))} – ${esc(mlab(months[months.length-1].k))}</div></div>
-      <div><div class="l">${ic('users')}Unique Suppliers</div><div class="v">${parties||'–'}</div><div class="s">suppliers used</div></div>
+      <div><div class="l">${ic('users')}Unique Suppliers</div><div class="v">${parties||'–'}</div><div class="s">Suppliers Used</div></div>
     </div></div>`;
   /* chart defaults (same as supply) */
   const cs=getComputedStyle(document.documentElement);
