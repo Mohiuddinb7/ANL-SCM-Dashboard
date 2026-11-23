@@ -922,6 +922,7 @@ const DEFAULT_TABS = genTabs();
 /* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
 const fmt = (n,d=0) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const kfull = v => String(v).replace(/ Cr$/,' Crore').replace(/ MT$/,' Metric Ton');   /* full forms for the big KPI numbers */
 const money = n => n>=1e7 ? 'BDT '+fmt(n/1e7,2)+' Cr' : n>=1e5 ? 'BDT '+fmt(n/1e5,2)+' Lakh' : 'BDT '+fmt(n);
 const mt = kg => fmt(kg/1000,2)+' MT';
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1223,8 +1224,8 @@ function renderKpis(){
   const uTruck=new Set(VIEW.map(d=>String(d.truck||'').toUpperCase().replace(/\s+/g,'')).filter(Boolean)).size;
   $('kpis').innerHTML = `
     <div class="kpi"><div class="flow">
-      <div><div class="l">${ic('scale')}Total Supply Weight</div><div class="v">${mt(sw)}</div><div class="s">${fmt(sw,0)} kg</div></div>
-      <div><div class="l">${ic('cash')}Total Sales Value</div><div class="v">${money(sales)}</div><div class="s">BDT ${fmt(sales)}</div></div>
+      <div><div class="l">${ic('scale')}Total Supply Weight</div><div class="v">${kfull(mt(sw))}</div><div class="s">${fmt(sw,0)} kg</div></div>
+      <div><div class="l">${ic('cash')}Total Sales Value</div><div class="v">${kfull(money(sales))}</div><div class="s">BDT ${fmt(sales)}</div></div>
     </div></div>
     <div class="kpi"><div class="l">${ic('bars')}Product-Wise Supply Weight (MT)</div>${list('sw',x=>fmt(x/1000,2))}</div>
     <div class="kpi"><div class="l">${ic('pie')}Product-Wise Sales Value (BDT)</div>${list('sales',x=>money(x).replace('BDT ',''))}</div>
@@ -1558,7 +1559,7 @@ async function gvizCsv(src){
 async function gviz(src){ try{ return await gvizJsonp(src); }catch(e){ try{ return await gvizCsv(src); }catch(e2){ throw e; } } }
 const nv=s=>{ s=String(s??'').trim(); if(!s||s==='-') return null; const neg=/^\(.*\)$/.test(s); const v=parseFloat(s.replace(/[(),%\s]/g,'')); return isNaN(v)?null:(neg?-v:v); };
 const f2=n=>n==null?'':fmt(n,2);
-const kp=(l,v,s)=>`<div class="kpi"><div class="l">${/^<svg/.test(l)?l.replace(/(<\/svg>)(.*)$/,(m,a,t)=>a+esc(t)):esc(l)}</div><div class="v">${v}</div><div class="s">${s||''}</div></div>`;
+const kp=(l,v,s)=>`<div class="kpi"><div class="l">${/^<svg/.test(l)?l.replace(/(<\/svg>)(.*)$/,(m,a,t)=>a+esc(t)):esc(l)}</div><div class="v">${kfull(v)}</div><div class="s">${s||''}</div></div>`;
 let CURPG='Supply',SUP=null; const LIVE={};
 const nowT=()=>new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
 function page(k){
@@ -1990,8 +1991,8 @@ function renderPurch(nrows){
   const list=(k,f)=>'<ul class="plist">'+[...items].sort((a,b)=>b[k]-a[k]).map(x=>`<li><span><i class="dot" style="background:${colorFor(x.k,order.indexOf(x.k))}"></i>${esc(x.k)}</span><b>${f(x[k])}</b></li>`).join('')+`<li class="tot"><span>Total</span><b>${f(items.reduce((s,x)=>s+x[k],0))}</b></li></ul>`;
   $('puK').innerHTML=`
     <div class="kpi"><div class="flow">
-      <div><div class="l">${ic('scale')}Total Purchase Weight</div><div class="v">${hasQ?fmt(tq/U,2)+' MT':'–'}</div><div class="s">${hasQ?fmt(tq,0)+(kg?' kg':' MT'):'no quantity in sheet'}</div></div>
-      <div><div class="l">${ic('cash')}Total Purchase Value</div><div class="v">${hasA?money(ta):'–'}</div><div class="s">${hasA?'BDT '+fmt(ta)+(hasQ?' · avg '+fmt(ta/tq,2)+' per '+(kg?'kg':'MT'):''):'no amount in sheet'}</div></div>
+      <div><div class="l">${ic('scale')}Total Purchase Weight</div><div class="v">${hasQ?kfull(fmt(tq/U,2)+' MT'):'–'}</div><div class="s">${hasQ?fmt(tq,0)+(kg?' kg':' MT'):'no quantity in sheet'}</div></div>
+      <div><div class="l">${ic('cash')}Total Purchase Value</div><div class="v">${hasA?kfull(money(ta)):'–'}</div><div class="s">${hasA?'BDT '+fmt(ta)+(hasQ?' · avg '+fmt(ta/tq,2)+' per '+(kg?'kg':'MT'):''):'no amount in sheet'}</div></div>
     </div></div>
     <div class="kpi"><div class="l">${ic('bars')}Product-Wise Purchase Weight (MT)</div>${list('qty',mtf)}</div>
     <div class="kpi"><div class="l">${ic('pie')}Product-Wise Purchase Value (BDT)</div>${list('amt',cr)}</div>
