@@ -728,6 +728,12 @@ header.top .menuf label.f{width:100%;color:var(--muted)}
 .menupanel .mh.stat:has(+ #status:not(.err)){display:none!important}
 /* Removed info lines: "62 of 1,011 deliveries shown · date range" (Supply) and "N rows · source" (Procurement) */
 #count,#puCnt{display:none!important}
+/* Company name: normal (not tabular) punctuation, so it reads "Agrigate Network Ltd." with no gap before the dot */
+header.top h1,.stickytop h1{font-variant-numeric:normal;font-feature-settings:"tnum" 0}
+/* Profit & Loss: month headings sit right above their right-aligned figures; figures use equal-width digits */
+.pl th.g,.pl thead th.n{text-align:right}
+.pl th,.pl td.n,.pl td.tc{font-variant-numeric:tabular-nums}
+.pl td.n,.pl th.g{padding-right:20px}
 </style>
 </head>
 <body>
@@ -1138,7 +1144,7 @@ async function load(){
 function setStatus(h,err){ const s=$('status'); s.innerHTML=h; s.classList.toggle('err',!!err); $('menuBtn').classList.toggle('alert',!!err); }
 function setLive(st,time){
   const c=$('liveChip'); c.classList.toggle('off',st==='off'); c.classList.toggle('load',st==='load');
-  c.querySelector('span').textContent = st==='ok'?'Updated '+time:st==='off'?'Offline':'Updating…';
+  c.querySelector('span').textContent = st==='ok'?'Synced':st==='off'?'Offline':'Updating…';
   c.title = st==='ok'?'Last refreshed '+time:st==='off'?'Could not reach Google Sheets':'Loading data…';
 }
 
@@ -1228,7 +1234,7 @@ function renderKpis(){
       <div><div class="l">${ic('cash')}Total Sales Value</div><div class="v">${kfull(money(sales))}</div><div class="s">BDT ${fmt(sales)}</div></div>
     </div></div>
     <div class="kpi"><div class="l">${ic('bars')}Product-Wise Supply Weight (MT)</div>${list('sw',x=>fmt(x/1000,2))}</div>
-    <div class="kpi"><div class="l">${ic('pie')}Product-Wise Sales Value (BDT)</div>${list('sales',x=>money(x).replace('BDT ',''))}</div>
+    <div class="kpi"><div class="l">${ic('pie')}Product-Wise Sales Value (BDT)</div>${list('sales',x=>fmt(x/1e7,2)+' Cr')}</div>
     <div class="kpi"><div class="flow flow3">
       <div><div class="l">${ic('truck')}Total Truck Deliveries</div><div class="v">${fmt(VIEW.length)}</div><div class="s">Against ${nPo} PO Number${nPo===1?'':'s'}</div></div>
       <div title="Total customers supplied"><div class="l">${ic('users')}Unique Customers</div><div class="v">${fmt(uCust)}</div><div class="s">Customers Supplied</div></div>
@@ -1290,7 +1296,7 @@ function renderCharts(){
     ctx.restore();}};
   mk('c1',{type:'pie',plugins:[pieIn],data:{labels:byItem.map(x=>x.k),datasets:[{data:byItem.map(x=>x.sales),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
     options:{...base,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: BDT ${fmt(c.raw)} (${fmt(c.raw/totSales*100,2)}%)`}}}}});
-  const totalSales=sum(VIEW,'sales'), cr=v=>money(v).replace('BDT ','');
+  const totalSales=sum(VIEW,'sales'), cr=v=>fmt(v/1e7,2)+' Cr';
   $('c1leg').innerHTML=(byItem.length?'<li class="hd"><span></span><span>Product</span><span class="r">Sales (BDT)</span><span class="r">Share</span></li>':'')
     +byItem.map((x,i)=>{const pc=x.sales/totSales*100;
     return `<li title="${esc(x.k)}: ${money(x.sales)}"><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><span class="vl r">${cr(x.sales)}</span><b class="r">${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')
@@ -1986,7 +1992,7 @@ function renderPurch(nrows){
   const items=by(d=>d.item).sort((a,b)=>b[key]-a[key]);
   const months=by(d=>d.month).sort((a,b)=>a.k<b.k?-1:1);
   const order=items.map(x=>x.k), colors=items.map((x,i)=>colorFor(x.k,i));
-  const cr=v=>money(v).replace('BDT ',''), mtf=v=>fmt(v,2);
+  const cr=v=>money(v).replace('BDT ',''), crO=v=>fmt(v/1e7,2)+' Cr', mtf=v=>fmt(v,2);   /* crO: always Crore (product-wise lists) */
   const parties=new Set(R.map(d=>d.party).filter(Boolean)).size;
   const list=(k,f)=>'<ul class="plist">'+[...items].sort((a,b)=>b[k]-a[k]).map(x=>`<li><span><i class="dot" style="background:${colorFor(x.k,order.indexOf(x.k))}"></i>${esc(x.k)}</span><b>${f(x[k])}</b></li>`).join('')+`<li class="tot"><span>Total</span><b>${f(items.reduce((s,x)=>s+x[k],0))}</b></li></ul>`;
   $('puK').innerHTML=`
@@ -1995,7 +2001,7 @@ function renderPurch(nrows){
       <div><div class="l">${ic('cash')}Total Purchase Value</div><div class="v">${hasA?kfull(money(ta)):'–'}</div><div class="s">${hasA?'BDT '+fmt(ta):'no amount in sheet'}</div></div>
     </div></div>
     <div class="kpi"><div class="l">${ic('bars')}Product-Wise Purchase Weight (MT)</div>${list('qty',mtf)}</div>
-    <div class="kpi"><div class="l">${ic('pie')}Product-Wise Purchase Value (BDT)</div>${list('amt',cr)}</div>
+    <div class="kpi"><div class="l">${ic('pie')}Product-Wise Purchase Value (BDT)</div>${list('amt',crO)}</div>
     <div class="kpi"><div class="flow flow3">
       <div><div class="l">${ic('doc')}Total Purchase Entries</div><div class="v">${fmt(R.length)}</div><div class="s">${items.length} Product${items.length===1?'':'s'}</div></div>
       <div><div class="l">${ic('cal')}Months Covered</div><div class="v">${months.length}</div><div class="s">${esc(mlab(months[0].k))} – ${esc(mlab(months[months.length-1].k))}</div></div>
@@ -2019,8 +2025,8 @@ function renderPurch(nrows){
   mk('puC1',{type:'pie',plugins:[pieIn],data:{labels:items.map(x=>x.k),datasets:[{data:items.map(x=>x[key]),backgroundColor:colors,borderColor:surf,borderWidth:3,hoverOffset:6}]},
     options:{...base,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${hasA?'BDT '+fmt(c.raw):fmt(c.raw,2)+' MT'} (${fmt(c.raw/tot1*100,2)}%)`}}}}});
   $('puC1leg').innerHTML='<li class="hd"><span></span><span>Product</span><span class="r">'+(hasA?'Value (BDT)':'Qty (MT)')+'</span><span class="r">Share</span></li>'
-    +items.map((x,i)=>{const pc=x[key]/tot1*100; return `<li><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><span class="vl r">${hasA?cr(x.amt):mtf(x.qty)}</span><b class="r">${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')
-    +`<li class="tot"><span></span><span class="nm">Total</span><span class="vl r">${hasA?cr(ta):mtf(tq/U)}</span><b class="r">100%</b></li>`;
+    +items.map((x,i)=>{const pc=x[key]/tot1*100; return `<li><i style="background:${colors[i]}"></i><span class="nm">${esc(x.k)}</span><span class="vl r">${hasA?crO(x.amt):mtf(x.qty)}</span><b class="r">${pc>0&&pc<0.1?'&lt;0.1':fmt(pc,1)}%</b></li>`;}).join('')
+    +`<li class="tot"><span></span><span class="nm">Total</span><span class="vl r">${hasA?crO(ta):mtf(tq/U)}</span><b class="r">100%</b></li>`;
   $('puc1tot').textContent=hasA?'Total Purchase '+money(ta):'Total '+mt(tq*(kg?1:1000));
   $('puc2tot').textContent=hasQ?'Total Purchase '+fmt(tq/U,2)+' MT':'';
   const bq=[...items].sort((a,b)=>b.qty-a.qty);
