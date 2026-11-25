@@ -737,6 +737,20 @@ header.top h1,.stickytop h1{font-variant-numeric:normal;font-feature-settings:"t
 .pl tr.sec td{font-weight:700;color:var(--ink)}
 .pl tr.sec td.l{background:var(--surface)}
 .pl tr.sp td{padding-top:6px!important;padding-bottom:6px!important;font-size:6px;background:var(--surface)}
+
+/* ===== Main page tabs: three light fixed colours when not selected, strong green when selected ===== */
+.maintabs button{border:1px solid transparent;border-radius:10px;font-weight:600;cursor:pointer;transition:all .2s ease}
+#tSupply{background-color:#f1f6ee;border-color:#d5e3cc;color:#263322}
+#tPurch{background-color:#f7f5ec;border-color:#e4dec8;color:#2f2c22}
+#tPL{background-color:#eff5f2;border-color:#cfe0d8;color:#20302a}
+.maintabs button:hover{filter:brightness(.97);transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.maintabs button[aria-pressed="true"],.maintabs button[aria-pressed="true"]:hover{background-color:#365620;border-color:#365620;color:#fff;filter:none;transform:none;box-shadow:0 3px 10px rgba(54,86,32,.25)}
+@media (prefers-color-scheme:dark){
+  #tSupply{background-color:#1c2a1d;border-color:#2c4130;color:#d9e6d6}
+  #tPurch{background-color:#26261b;border-color:#3b3a28;color:#e6e3d0}
+  #tPL{background-color:#1b2823;border-color:#2c4137;color:#d6e6df}
+  .maintabs button:hover{filter:brightness(1.12)}
+}
 </style>
 </head>
 <body>
