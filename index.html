@@ -1741,7 +1741,7 @@ function renderPL(){
   R('Total Cost of Sales','cogs',{bold:1});
   R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
   }
-  const cell=v=>v==null?'':(v<0?'<span class="bad">'+fmt(v,0)+'</span>':fmt(v,0));
+  const cell=v=>v==null?'':(v<0?'<span class="bad">'+fmt(v,2)+'</span>':fmt(v,2));      /* every figure with .00 */
   const cv=(x,l)=>{ if(x.sub){ const e=g(l,'subs').find(y=>y.s===x.sub); return {q:e&&e.q,a:e&&e.a}; }
     if(x.pct) return {q:null,a:pc(g(l,x.k)||0,g(l,x.pct))};
     return {q:g(l,x.k+'_q'),a:g(l,x.k)}; };
@@ -1754,7 +1754,7 @@ function renderPL(){
     const cls=(x.bold?'hd ':'')+(x.tot?'tot ':'')+(x.it?'pc ':'');
     return `<tr class="${cls}"><td class="l${x.ind?' ind':''}">${esc(x.lab)}</td>${ms.map(l=>`<td class="n">${show(x,cv(x,l))}</td>`).join('')}<td class="n tc">${show(x,tv(x))}</td></tr>`;
   }).join('');
-  const ptxt=(x,v)=>x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,0)));
+  const ptxt=(x,v)=>x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,2)));
   PLX={title:$('plT').textContent,sub:$('plR').textContent,period:$('plP').textContent,head:['Particulars (BDT)',...ms,'Total'],
     rows:vis.map(x=>({x,cells:[x.lab,...ms.map(l=>ptxt(x,cv(x,l))),ptxt(x,tv(x))]}))};
   $('plTb').innerHTML=hd+'<tbody>'+body+'</tbody>';
