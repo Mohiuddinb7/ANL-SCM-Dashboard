@@ -734,6 +734,8 @@ header.top h1,.stickytop h1{font-variant-numeric:normal;font-feature-settings:"t
 .pl th.g,.pl thead th.n{text-align:right}
 .pl th,.pl td.n,.pl td.tc{font-variant-numeric:tabular-nums}
 .pl td.n,.pl th.g{padding-right:20px}
+.pl tr.sec td{font-weight:700;color:var(--ink)}
+.pl tr.sec td.l{background:var(--surface)}
 </style>
 </head>
 <body>
@@ -1731,15 +1733,18 @@ function renderPL(){
   const RV=PR?selRev:D.subs.filter(x=>x.sec==='rev'), CS=PR?selCost:D.subs.filter(x=>x.sec==='cost');
   if(PR&&selRev.length<=1){                          /* one product: its own volume, revenue, cost, profit and margin */
     R('Volume (MT)','rev',{vol:1,bold:1}); R('Revenue','rev',{bold:1}); R('Cost of Sales','cogs',{bold:1});
-    R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
-  } else {
-  RV.forEach(s=>rows.push({lab:s.lab,sub:s,ind:1,vol:1}));      /* product-wise volume (MT) */
+    R('Gross Profit','gp',{bold:1}); R('Gross Profit Margin (%)','gp',{pct:'rev',it:1});
+  } else {                                           /* "Final P&L Format" */
+  const dl=t=>/sales/i.test(t)?t:t+' Sales', cl=t=>'Cost of '+dl(t);
+  R('Revenue','rev',{sec:1});
+  RV.forEach(s=>rows.push({lab:dl(s.lab),sub:s,ind:1,vol:1}));      /* product-wise volume (MT) */
   R('Total Volume (MT)','rev',{vol:1,bold:1});
-  RV.forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
+  RV.forEach(s=>rows.push({lab:dl(s.lab),sub:s,ind:1}));
   R('Total Revenue','rev',{bold:1});
-  CS.forEach(s=>rows.push({lab:s.lab,sub:s,ind:1}));
+  R('Cost of Goods Sold (COGS)','cogs',{sec:1});
+  CS.forEach(s=>rows.push({lab:cl(s.lab),sub:s,ind:1}));
   R('Total Cost of Sales','cogs',{bold:1});
-  R('Gross Profit','gp',{bold:1}); R('Gross Margin %','gp',{pct:'rev',it:1});
+  R('Gross Profit','gp',{bold:1}); R('Gross Profit Margin (%)','gp',{pct:'rev',it:1});
   }
   const cell=v=>v==null?'':(v<0?'<span class="bad">'+fmt(v,2)+'</span>':fmt(v,2));      /* every figure with .00 */
   const cv=(x,l)=>{ if(x.sub){ const e=g(l,'subs').find(y=>y.s===x.sub); return {q:e&&e.q,a:e&&e.a}; }
@@ -1748,13 +1753,13 @@ function renderPL(){
   const tv=x=>{ if(x.sub){ return {q:ms.reduce((s,l)=>s+(cv(x,l).q||0),0),a:ms.reduce((s,l)=>s+(cv(x,l).a||0),0)}; }
     if(x.pct) return {q:null,a:pc(S(x.k,'a'),S(x.pct,'a'))}; return {q:S(x.k,'q'),a:S(x.k,'a')}; };
   const vis=rows.filter(x=>{ if(!x.sub) return true; return ms.some(l=>(cv(x,l).a||cv(x,l).q)); });
-  const show=(x,v)=>x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):cell(v.a));
+  const show=(x,v)=>x.sec?'':x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):cell(v.a));
   const hd='<thead><tr><th class="l">Particulars (BDT)</th>'+ms.map(p=>`<th class="g">${esc(p)}</th>`).join('')+'<th class="g">Total</th></tr></thead>';
   const body=vis.map(x=>{
-    const cls=(x.bold?'hd ':'')+(x.tot?'tot ':'')+(x.it?'pc ':'');
+    const cls=(x.sec?'sec ':'')+(x.bold?'hd ':'')+(x.tot?'tot ':'')+(x.it?'pc ':'');
     return `<tr class="${cls}"><td class="l${x.ind?' ind':''}">${esc(x.lab)}</td>${ms.map(l=>`<td class="n">${show(x,cv(x,l))}</td>`).join('')}<td class="n tc">${show(x,tv(x))}</td></tr>`;
   }).join('');
-  const ptxt=(x,v)=>x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,2)));
+  const ptxt=(x,v)=>x.sec?'':x.vol?(v.q==null?'':f2(v.q)):(x.pct?(v.a!=null?f2(v.a)+'%':''):(v.a==null?'':fmt(v.a,2)));
   PLX={title:$('plT').textContent,sub:$('plR').textContent,period:$('plP').textContent,head:['Particulars (BDT)',...ms,'Total'],
     rows:vis.map(x=>({x,cells:[x.lab,...ms.map(l=>ptxt(x,cv(x,l))),ptxt(x,tv(x))]}))};
   $('plTb').innerHTML=hd+'<tbody>'+body+'</tbody>';
@@ -1800,7 +1805,7 @@ $('plPdf').onclick=()=>{
       if(d.section==='head'){ d.cell.styles.halign=d.column.index?'center':'left'; return; }
       const m=X.rows[d.row.index].x;
       if(m.bold){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[226,235,214]; }
-      if(m.tot) d.cell.styles.fontStyle='bold';
+      if(m.tot||m.sec) d.cell.styles.fontStyle='bold';
       if(m.pct){ d.cell.styles.fontStyle='italic'; d.cell.styles.textColor=[111,122,28]; }
       if(m.ind&&d.column.index===0) d.cell.styles.cellPadding={top:5,bottom:5,right:5,left:16};
       if(d.column.index===nc-1&&!m.pct) d.cell.styles.fontStyle='bold';
